@@ -6,11 +6,11 @@ import {
 
 import { sequelize } from "./config/database";
 
-import { ProcessingJob, Video } from "./models";
+import { ProcessingJob, Video, VideoVariant } from "./models";
 
 import { downloadFromMinIO, uploadToMinIO } from "./services/minio.service";
 import { extractVideoMetadata } from "./services/ffprobe.service";
-import { generateThumbnail } from "./services/ffmpeg.service";
+import { generateThumbnail, transcodeVideo } from "./services/ffmpeg.service";
 
 import { unlink } from "fs/promises";
 import path from "path";
@@ -109,6 +109,21 @@ async function startWorker() {
           `thumbnail-${videoId}-${Date.now()}.jpg`,
         );
 
+        const output1080Path = path.join(
+          "/tmp",
+          `video-${videoId}-1080p-${Date.now()}.mp4`,
+        );
+
+        const output720Path = path.join(
+          "/tmp",
+          `video-${videoId}-720p-${Date.now()}.mp4`,
+        );
+
+        const output480Path = path.join(
+          "/tmp",
+          `video-${videoId}-480p-${Date.now()}.mp4`,
+        );
+
         try {
           // 4. Download video from MinIO
 
@@ -144,7 +159,70 @@ async function startWorker() {
 
           console.log("Thumbnail uploaded successfully");
 
-          // 7. Save metadata to MySQL
+          // 7. Transcode video into multiple resolutions
+
+          console.log(`Starting 1080p transcoding for video ${videoId}`);
+
+          await transcodeVideo(tempFilePath, output1080Path, 1080);
+
+          console.log(`1080p transcoding completed`);
+
+          console.log(`Starting 720p transcoding for video ${videoId}`);
+
+          await transcodeVideo(tempFilePath, output720Path, 720);
+
+          console.log(`720p transcoding completed`);
+
+          console.log(`Starting 480p transcoding for video ${videoId}`);
+
+          await transcodeVideo(tempFilePath, output480Path, 480);
+
+          console.log(`480p transcoding completed`);
+
+          const objectKey1080 = `processed/${video.userId}/${video.id}/1080p.mp4`;
+
+          const objectKey720 = `processed/${video.userId}/${video.id}/720p.mp4`;
+
+          const objectKey480 = `processed/${video.userId}/${video.id}/480p.mp4`;
+
+          console.log("Uploading 1080p video to MinIO");
+
+          await uploadToMinIO(objectKey1080, output1080Path, "video/mp4");
+
+          console.log("Uploading 720p video to MinIO");
+
+          await uploadToMinIO(objectKey720, output720Path, "video/mp4");
+
+          console.log("Uploading 480p video to MinIO");
+
+          await uploadToMinIO(objectKey480, output480Path, "video/mp4");
+
+          console.log("All transcoded videos uploaded successfully");
+
+          // 8. Save metadata to MySQL
+
+          await VideoVariant.bulkCreate([
+            {
+              videoId,
+              resolution: "1080p",
+              objectKey: objectKey1080,
+              fileSize: null,
+            },
+            {
+              videoId,
+              resolution: "720p",
+              objectKey: objectKey720,
+              fileSize: null,
+            },
+            {
+              videoId,
+              resolution: "480p",
+              objectKey: objectKey480,
+              fileSize: null,
+            },
+          ]);
+
+          console.log(`Video ${videoId} variants saved successfully`);
 
           await Video.update(
             {
@@ -153,8 +231,8 @@ async function startWorker() {
               width: metadata.width,
               height: metadata.height,
               codec: metadata.codec,
-			  thumbnailObjectKey,
-              status: "COMPLETED",
+              thumbnailObjectKey,
+              status: "PROCESSING",
             },
             {
               where: {
@@ -164,9 +242,39 @@ async function startWorker() {
           );
 
           console.log(`Video ${videoId} metadata updated successfully`);
-        } finally {}
+        } finally {
+          const temporaryFiles = [
+            tempFilePath,
+            thumbnailPath,
+            output1080Path,
+            output720Path,
+            output480Path,
+          ];
 
-        // 8. Mark processing job as completed
+          for (const file of temporaryFiles) {
+            try {
+              await unlink(file);
+
+              console.log(`Temporary file deleted: ${file}`);
+            } catch {
+              console.log(`Temporary file did not need deletion: ${file}`);
+            }
+          }
+        }
+
+        // 9. Mark video update as completed
+        await Video.update(
+          {
+            status: "COMPLETED",
+          },
+          {
+            where: {
+              id: videoId,
+            },
+          },
+        );
+
+        // 9. Mark processing job as completed
 
         await ProcessingJob.update(
           {
@@ -182,7 +290,7 @@ async function startWorker() {
 
         console.log(`Job ${jobId} completed`);
 
-        // 9. Acknowledge RabbitMQ message
+        // 10. Acknowledge RabbitMQ message
 
         channel.ack(message);
       } catch (error) {

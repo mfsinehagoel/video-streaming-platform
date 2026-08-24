@@ -1,4 +1,5 @@
 import {
+  CreationOptional,
   DataTypes,
   InferAttributes,
   InferCreationAttributes,
@@ -11,15 +12,18 @@ export class VideoVariant extends Model<
   InferAttributes<VideoVariant>,
   InferCreationAttributes<VideoVariant>
 > {
-  declare id: number;
+  declare id: CreationOptional<number>;
+
   declare videoId: number;
 
   declare resolution: "1080p" | "720p" | "480p";
-  declare format: string;
+
   declare objectKey: string;
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare fileSize: number | null;
+
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
 VideoVariant.init(
@@ -41,26 +45,28 @@ VideoVariant.init(
       allowNull: false,
     },
 
-    format: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-    },
-
     objectKey: {
       type: DataTypes.STRING(500),
       allowNull: false,
       field: "object_key",
     },
+
+    fileSize: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: "file_size",
+    },
+
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'created_at',
+      field: "created_at",
     },
 
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'updated_at',
+      field: "updated_at",
     },
   },
   {
