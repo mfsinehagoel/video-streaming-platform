@@ -33,6 +33,7 @@ export class Video extends Model<
     | "FAILED";
 
   declare originalObjectKey: string | null;
+  declare thumbnailObjectKey: string | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -106,6 +107,12 @@ Video.init(
       allowNull: true,
       field: "original_object_key",
     },
+    thumbnailObjectKey: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      field: "thumbnail_object_key",
+    },
+
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,

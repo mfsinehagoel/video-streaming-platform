@@ -3,8 +3,17 @@ import {
   getRabbitMQChannel,
   PROCESSING_QUEUE,
 } from "./config/rabbitmq";
+
 import { sequelize } from "./config/database";
-import { ProcessingJob } from "./models";
+
+import { ProcessingJob, Video } from "./models";
+
+import { downloadFromMinIO, uploadToMinIO } from "./services/minio.service";
+import { extractVideoMetadata } from "./services/ffprobe.service";
+import { generateThumbnail } from "./services/ffmpeg.service";
+
+import { unlink } from "fs/promises";
+import path from "path";
 
 async function startWorker() {
   try {
@@ -12,7 +21,7 @@ async function startWorker() {
 
     console.log("Worker: MySQL connected successfully");
 
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
 
     console.log("Worker: Database synchronized successfully");
 
@@ -29,12 +38,16 @@ async function startWorker() {
         return;
       }
 
+      let jobId: number | undefined;
+      let videoId: number | undefined;
+
       try {
         const job = JSON.parse(message.content.toString());
 
         console.log("Received processing job:", job);
 
-        const { jobId, videoId } = job;
+        jobId = job.jobId;
+        videoId = job.videoId;
 
         if (!jobId || !videoId) {
           throw new Error(
@@ -57,7 +70,103 @@ async function startWorker() {
 
         console.log(`Processing video ${videoId}, job ${jobId}`);
 
-        // FFprobe / FFmpeg will be added here later.
+        // 1. Find video in database
+
+        const video = await Video.findByPk(videoId);
+
+        if (!video) {
+          throw new Error(`Video ${videoId} not found`);
+        }
+
+        if (!video.originalObjectKey) {
+          throw new Error(
+            `Video ${videoId} does not have an original object key`,
+          );
+        }
+
+        // 2. Mark video as PROCESSING
+
+        await Video.update(
+          {
+            status: "PROCESSING",
+          },
+          {
+            where: {
+              id: videoId,
+            },
+          },
+        );
+
+        // 3. Create temporary file path
+
+        const tempFilePath = path.join(
+          "/tmp",
+          `video-${videoId}-${Date.now()}.mp4`,
+        );
+
+        const thumbnailPath = path.join(
+          "/tmp",
+          `thumbnail-${videoId}-${Date.now()}.jpg`,
+        );
+
+        try {
+          // 4. Download video from MinIO
+
+          console.log(
+            `Downloading video from MinIO: ${video.originalObjectKey}`,
+          );
+
+          await downloadFromMinIO(video.originalObjectKey, tempFilePath);
+
+          console.log(`Video ${videoId} downloaded successfully`);
+
+          // 5. Run FFprobe
+
+          console.log(`Running FFprobe for video ${videoId}`);
+
+          const metadata = await extractVideoMetadata(tempFilePath);
+
+          console.log("Video metadata extracted:", metadata);
+
+          // 6. Run FFmpeg
+
+          console.log(`Generating thumbnail for video ${videoId}`);
+
+          await generateThumbnail(tempFilePath, thumbnailPath);
+
+          console.log(`Thumbnail generated: ${thumbnailPath}`);
+
+          const thumbnailObjectKey = `thumbnails/${video.userId}/${video.id}/thumbnail.jpg`;
+
+          console.log(`Uploading thumbnail to MinIO: ${thumbnailObjectKey}`);
+
+          await uploadToMinIO(thumbnailObjectKey, thumbnailPath, "image/jpeg");
+
+          console.log("Thumbnail uploaded successfully");
+
+          // 7. Save metadata to MySQL
+
+          await Video.update(
+            {
+              fileSize: metadata.fileSize,
+              duration: metadata.duration,
+              width: metadata.width,
+              height: metadata.height,
+              codec: metadata.codec,
+			  thumbnailObjectKey,
+              status: "COMPLETED",
+            },
+            {
+              where: {
+                id: videoId,
+              },
+            },
+          );
+
+          console.log(`Video ${videoId} metadata updated successfully`);
+        } finally {}
+
+        // 8. Mark processing job as completed
 
         await ProcessingJob.update(
           {
@@ -73,10 +182,15 @@ async function startWorker() {
 
         console.log(`Job ${jobId} completed`);
 
+        // 9. Acknowledge RabbitMQ message
+
         channel.ack(message);
       } catch (error) {
-        console.error("Worker processing failed:", error);
+        console.error(`Worker processing failed for job ${jobId}:`, error);
 
+        // Do not acknowledge the failed message.
+        // For now, send it to RabbitMQ's dead-letter path
+        // / discard it according to the current queue setup.
         channel.nack(message, false, false);
       }
     });
