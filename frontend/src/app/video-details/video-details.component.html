@@ -1,0 +1,61 @@
+<div class="video-details">
+  <a routerLink="/videos" class="back-button"> ← Back to Videos </a>
+
+  <div *ngIf="loading" class="loading">Loading video...</div>
+
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && video" class="video-content">
+    <h1>{{ video.title }}</h1>
+
+    <!-- Video Player -->
+    <div class="video-player">
+      <video controls preload="metadata" [poster]="thumbnailUrl">
+        <source [src]="videoUrl" type="video/mp4" />
+
+        Your browser does not support video playback.
+      </video>
+    </div>
+
+    <!-- Video Information -->
+    <div class="video-info">
+      <h2>Video Information</h2>
+
+      <div class="info-row">
+        <span>Status</span>
+        <strong>{{ video.status }}</strong>
+      </div>
+
+      <div class="info-row">
+        <span>Original Filename</span>
+        <strong>
+          {{ video.originalFilename }}
+        </strong>
+      </div>
+
+      <div class="info-row">
+        <span>Duration</span>
+        <strong> {{ video.duration }} seconds </strong>
+      </div>
+
+      <div class="info-row">
+        <span>Resolution</span>
+        <strong> {{ video.width }} × {{ video.height }} </strong>
+      </div>
+
+      <div class="info-row">
+        <span>Codec</span>
+        <strong>
+          {{ video.codec }}
+        </strong>
+      </div>
+
+      <div class="info-row">
+        <span>File Size</span>
+        <strong> {{ video.fileSize }} bytes </strong>
+      </div>
+    </div>
+  </div>
+</div>

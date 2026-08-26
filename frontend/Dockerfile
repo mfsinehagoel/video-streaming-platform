@@ -1,5 +1,4 @@
-# Build stage
-FROM node:22-alpine AS build
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -11,12 +10,4 @@ COPY . .
 
 RUN npm run build
 
-
-# Production stage
-FROM nginx:alpine
-
-COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "cp -r /app/dist/frontend/browser/. /usr/share/frontend-dist/"]

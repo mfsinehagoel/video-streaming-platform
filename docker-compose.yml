@@ -4,6 +4,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    volumes:
+      - frontend-dist:/usr/share/frontend-dist
     networks:
       - video-network
 
@@ -84,6 +86,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8081:80"
+    volumes:
+      - frontend-dist:/usr/share/nginx/html:ro
     depends_on:
       - frontend
       - api
@@ -149,3 +153,4 @@ networks:
 volumes:
   mysql_data:
   minio-data:
+  frontend-dist:

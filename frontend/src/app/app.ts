@@ -1,25 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { ApiService } from './services/api.service';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  styleUrl: './app.css',
+  imports: [RouterOutlet],
   templateUrl: './app.html',
+  styleUrl: './app.css',
 })
-export class App implements OnInit {
-  private apiService = inject(ApiService);
-
-  message = signal('Checking API...');
-
-  ngOnInit(): void {
-    this.apiService.getHealth().subscribe({
-      next: (response) => {
-        this.message.set(response.message);
-      },
-
-      error: () => {
-        this.message.set('API connection failed');
-      },
-    });
-  }
-}
+export class App {}

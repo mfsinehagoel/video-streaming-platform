@@ -1,0 +1,82 @@
+<div class="videos-page">
+  <div class="page-header">
+    <div>
+      <h1>My Videos</h1>
+      <p>Manage and watch your uploaded videos.</p>
+    </div>
+
+    <button class="upload-button" (click)="goToUpload()">Upload Video</button>
+  </div>
+
+  @if (loading) {
+    <div class="loading">Loading videos...</div>
+  }
+
+  @if (error) {
+    <div class="error">
+      {{ error }}
+    </div>
+  }
+
+  @if (!loading && !error && videos.length === 0) {
+    <div class="empty-state">
+      <h2>No videos found</h2>
+      <p>Upload your first video to get started.</p>
+    </div>
+  }
+
+  @if (!loading && videos.length > 0) {
+    <div class="video-grid">
+      @for (video of videos; track video.id) {
+        <div class="video-card">
+          <div class="thumbnail-container">
+            <img [src]="getThumbnail(video)" [alt]="video.title" class="thumbnail" />
+
+            <span class="duration">
+              {{ formatDuration(video.duration) }}
+            </span>
+          </div>
+
+          <div class="video-info">
+            <h3>
+              {{ video.title }}
+            </h3>
+
+            <p class="filename">
+              {{ video.originalFilename }}
+            </p>
+
+            <div class="metadata">
+              @if (video.width && video.height) {
+                <span> {{ video.width }}×{{ video.height }} </span>
+              }
+
+              @if (video.codec) {
+                <span>
+                  {{ video.codec }}
+                </span>
+              }
+
+              <span>
+                {{ formatFileSize(video.fileSize) }}
+              </span>
+            </div>
+
+            <div class="status-row">
+              <span
+                class="status"
+                [class.completed]="video.status === 'COMPLETED'"
+                [class.processing]="video.status === 'PROCESSING'"
+                [class.queued]="video.status === 'QUEUED'"
+                [class.failed]="video.status === 'FAILED'"
+              >
+                {{ video.status }}
+              </span>
+            </div>
+            <button class="button" [routerLink]="['/video', video.id]">Watch</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

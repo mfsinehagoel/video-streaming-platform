@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createVideo, getVideoById, getVideos } from "./videos.controller";
+import { createVideo, getVideoById, getVideos, streamVideo } from "./videos.controller";
 
 import fs from "fs";
 import path from "path";
@@ -138,6 +138,8 @@ router.get("/:id/download", downloadOriginalVideo);
 router.get("/:id/status", getVideoStatus);
 
 router.get("/:id", getVideoById);
+
+router.get("/:id/stream", streamVideo);
 
 router.delete("/:id", deleteVideo);
 

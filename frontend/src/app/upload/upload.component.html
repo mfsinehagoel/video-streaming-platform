@@ -1,0 +1,76 @@
+<div class="upload-page">
+  <div class="page-header">
+    <div>
+      <h1>Upload Video</h1>
+      <p>Upload a video for processing and streaming.</p>
+    </div>
+  </div>
+
+  <div class="upload-card">
+    <div class="form-group">
+      <label for="title"> Video Title </label>
+
+      <input
+        id="title"
+        type="text"
+        [(ngModel)]="title"
+        placeholder="Enter video title"
+        [disabled]="uploading"
+      />
+    </div>
+
+    <div class="form-group">
+      <label> Video File </label>
+
+      <div class="file-area">
+        <input
+          id="video"
+          type="file"
+          accept="video/*"
+          (change)="onFileSelected($event)"
+          [disabled]="uploading"
+        />
+
+        <label for="video" class="file-label"> Choose Video </label>
+
+        @if (selectedFile) {
+          <div class="selected-file">
+            <strong>
+              {{ selectedFile.name }}
+            </strong>
+
+            <span>
+              {{ formatFileSize(selectedFile.size) }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (errorMessage) {
+      <div class="message error">
+        {{ errorMessage }}
+      </div>
+    }
+
+    @if (successMessage) {
+      <div class="message success">
+        {{ successMessage }}
+      </div>
+    }
+
+    <div class="actions">
+      <button type="button" class="secondary" (click)="cancel()" [disabled]="uploading">
+        Cancel
+      </button>
+
+      <button type="button" class="primary" (click)="upload()" [disabled]="uploading">
+        @if (uploading) {
+          Uploading...
+        } @else {
+          Upload Video
+        }
+      </button>
+    </div>
+  </div>
+</div>
