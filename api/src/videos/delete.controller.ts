@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Video, VideoVariant, ProcessingJob } from "../models";
 import { minioClient, MINIO_BUCKET } from "../config/minio";
+import { deleteFromMinIO } from "../services/minio.service";
 
 async function deleteObjectIfExists(objectKey: string) {
   try {
@@ -11,9 +12,18 @@ async function deleteObjectIfExists(objectKey: string) {
   }
 }
 
-export async function deleteVideo(req: Request, res: Response) {
+export const deleteVideo = async (req: Request, res: Response) => {
   try {
-    const videoId = Number(req.params.id);
+    const idParam = req.params.id;
+
+    if (!idParam) {
+      return res.status(400).json({
+        success: false,
+        message: "Video ID is required",
+      });
+    }
+
+    const videoId = Number(idParam);
 
     if (!Number.isInteger(videoId)) {
       return res.status(400).json({
@@ -31,74 +41,44 @@ export async function deleteVideo(req: Request, res: Response) {
       });
     }
 
-    console.log(`Deleting video ${videoId}`);
-
-    // 1. Delete original video
-    if (video.originalObjectKey) {
-      await deleteObjectIfExists(video.originalObjectKey);
-    }
-
-    // 2. Delete thumbnail
-    if (video.thumbnailObjectKey) {
-      await deleteObjectIfExists(video.thumbnailObjectKey);
-    }
-
-    // 3. Delete processed video variants
+    // Find all processed variants
     const variants = await VideoVariant.findAll({
       where: {
         videoId,
       },
     });
 
-    for (const variant of variants) {
-      await deleteObjectIfExists(variant.objectKey);
+    // Delete original
+    if (video.originalObjectKey) {
+      await deleteFromMinIO(video.originalObjectKey);
     }
 
-    // 4. Delete HLS files
+    // Delete thumbnail
+    if (video.thumbnailObjectKey) {
+      await deleteFromMinIO(video.thumbnailObjectKey);
+    }
+
+    // Delete HLS playlist if present
     if (video.hlsObjectKey) {
-      const hlsPrefix = video.hlsObjectKey.replace("/master.m3u8", "");
-
-      console.log(`Deleting HLS objects under: ${hlsPrefix}`);
-
-      const objectsToDelete: string[] = [];
-
-      const stream = minioClient.listObjects(
-        MINIO_BUCKET,
-        hlsPrefix + "/",
-        true,
-      );
-
-      for await (const object of stream) {
-        if (object.name) {
-          objectsToDelete.push(object.name);
-        }
-      }
-
-      for (const objectKey of objectsToDelete) {
-        await deleteObjectIfExists(objectKey);
-      }
+      await deleteFromMinIO(video.hlsObjectKey);
     }
 
-    // 5. Delete VideoVariant records
+    // Delete processed variants
+    for (const variant of variants) {
+      await deleteFromMinIO(variant.objectKey);
+    }
+
+    // Delete variant records
     await VideoVariant.destroy({
       where: {
         videoId,
       },
     });
 
-    // 6. Delete ProcessingJob records
-    await ProcessingJob.destroy({
-      where: {
-        videoId,
-      },
-    });
-
-    // 7. Delete video record
+    // Delete video record
     await video.destroy();
 
-    console.log(`Video ${videoId} deleted successfully`);
-
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "Video deleted successfully",
     });
@@ -110,4 +90,4 @@ export async function deleteVideo(req: Request, res: Response) {
       message: "Failed to delete video",
     });
   }
-}
+};

@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 
@@ -16,11 +16,13 @@ export class VideoDetailsComponent implements OnInit {
 
   loading = true;
   error = '';
+  deleting = false;
   private cdr = inject(ChangeDetectorRef);
 
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -41,13 +43,12 @@ export class VideoDetailsComponent implements OnInit {
         this.video = response.video;
 
         this.loading = false;
-		this.cdr.detectChanges();
+        this.cdr.detectChanges();
       },
       error: () => {
-
         this.error = 'Failed to load video';
         this.loading = false;
-		this.cdr.detectChanges();
+        this.cdr.detectChanges();
       },
     });
   }
@@ -58,5 +59,39 @@ export class VideoDetailsComponent implements OnInit {
 
   get thumbnailUrl(): string {
     return `/api/videos/${this.videoId}/thumbnail`;
+  }
+
+  get downloadUrl(): string {
+    return `/api/videos/${this.videoId}/download`;
+  }
+
+  deleteVideo(): void {
+    if (!this.videoId || this.deleting) {
+      return;
+    }
+
+    const confirmed = confirm(`Are you sure you want to delete "${this.video.title}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.deleting = true;
+
+    this.http.delete<any>(`/api/videos/${this.videoId}`).subscribe({
+      next: (response) => {
+        console.log('Video deleted:', response);
+
+        this.router.navigate(['/videos']);
+      },
+
+      error: (error) => {
+        console.error('Failed to delete video:', error);
+
+        this.deleting = false;
+
+        alert('Failed to delete video. Please try again.');
+      },
+    });
   }
 }

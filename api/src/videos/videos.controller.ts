@@ -250,3 +250,72 @@ export const streamVideo = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const downloadVideo = async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+
+    if (!idParam) {
+      return res.status(400).json({
+        success: false,
+        message: "Video ID is required",
+      });
+    }
+
+    const videoId = Number(idParam);
+
+    if (!Number.isInteger(videoId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid video ID",
+      });
+    }
+
+    // Find video
+    const video = await Video.findByPk(videoId);
+
+    if (!video) {
+      return res.status(404).json({
+        success: false,
+        message: "Video not found",
+      });
+    }
+
+    // Check original file exists
+    if (!video.originalObjectKey) {
+      return res.status(404).json({
+        success: false,
+        message: "Original video file not available",
+      });
+    }
+
+    // Get original file from MinIO
+    const stream = await minioClient.getObject(
+      MINIO_BUCKET,
+      video.originalObjectKey,
+    );
+
+    // Force browser download
+    res.setHeader("Content-Type", "application/octet-stream");
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${video.originalFilename}"`,
+    );
+
+    if (video.fileSize) {
+      res.setHeader("Content-Length", video.fileSize);
+    }
+
+    stream.pipe(res);
+  } catch (error) {
+    console.error("Video download error:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to download video",
+      });
+    }
+  }
+};

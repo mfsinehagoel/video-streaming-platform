@@ -2,6 +2,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 
 import { createWriteStream, createReadStream } from "fs";
@@ -117,4 +118,13 @@ export async function uploadDirectoryToMinIO(
       }),
     );
   }
+}
+
+export async function deleteFromMinIO(objectKey: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: bucket,
+    Key: objectKey,
+  });
+
+  await minioClient.send(command);
 }

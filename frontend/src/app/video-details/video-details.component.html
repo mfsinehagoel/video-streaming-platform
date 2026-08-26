@@ -19,6 +19,14 @@
       </video>
     </div>
 
+    <div class="video-actions">
+      <a [href]="downloadUrl" class="download-button"> Download Original </a>
+    </div>
+
+    <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteVideo()">
+      {{ deleting ? 'Deleting...' : 'Delete Video' }}
+    </button>
+
     <!-- Video Information -->
     <div class="video-info">
       <h2>Video Information</h2>
