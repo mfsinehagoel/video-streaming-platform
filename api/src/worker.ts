@@ -8,24 +8,36 @@ import { sequelize } from "./config/database";
 
 import { ProcessingJob, Video, VideoVariant } from "./models";
 
-import { downloadFromMinIO, uploadToMinIO } from "./services/minio.service";
+import {
+  downloadFromMinIO,
+  uploadToMinIO,
+  uploadDirectoryToMinIO,
+} from "./services/minio.service";
 import { extractVideoMetadata } from "./services/ffprobe.service";
 import { generateThumbnail, transcodeVideo } from "./services/ffmpeg.service";
 
-import { unlink } from "fs/promises";
+import { mkdir, rm, stat, unlink, writeFile } from "fs/promises";
 import path from "path";
+import { generateHLS } from "./services/hls.service";
 
 async function startWorker() {
   try {
+    // 1. Connect to MySQL
     await sequelize.authenticate();
 
     console.log("Worker: MySQL connected successfully");
+
+    // 2. Synchronize database
 
     await sequelize.sync({ alter: true });
 
     console.log("Worker: Database synchronized successfully");
 
-    await initializeRabbitMQ();
+    // 3. Connect to RabbitMQ
+
+	await initializeRabbitMQ();
+
+	console.log("Worker: RabbitMQ initialized successfully");
 
     const channel = getRabbitMQChannel();
 
@@ -199,30 +211,113 @@ async function startWorker() {
 
           console.log("All transcoded videos uploaded successfully");
 
-          // 8. Save metadata to MySQL
+          const stats1080 = await stat(output1080Path);
+          const stats720 = await stat(output720Path);
+          const stats480 = await stat(output480Path);
 
           await VideoVariant.bulkCreate([
             {
               videoId,
               resolution: "1080p",
               objectKey: objectKey1080,
-              fileSize: null,
+              fileSize: stats1080.size,
             },
             {
               videoId,
               resolution: "720p",
               objectKey: objectKey720,
-              fileSize: null,
+              fileSize: stats720.size,
             },
             {
               videoId,
               resolution: "480p",
               objectKey: objectKey480,
-              fileSize: null,
+              fileSize: stats480.size,
             },
           ]);
 
           console.log(`Video ${videoId} variants saved successfully`);
+
+          // HLS playlist
+
+          const hlsDirectory = path.join(
+            "/tmp",
+            `hls-${videoId}-${Date.now()}`,
+          );
+
+          await mkdir(path.join(hlsDirectory, "1080p"), {
+            recursive: true,
+          });
+
+          await mkdir(path.join(hlsDirectory, "720p"), {
+            recursive: true,
+          });
+
+          await mkdir(path.join(hlsDirectory, "480p"), {
+            recursive: true,
+          });
+
+          await generateHLS(
+            tempFilePath,
+            path.join(hlsDirectory, "1080p"),
+            1080,
+          );
+
+          await generateHLS(tempFilePath, path.join(hlsDirectory, "720p"), 720);
+
+          await generateHLS(tempFilePath, path.join(hlsDirectory, "480p"), 480);
+
+          const masterPlaylistPath = path.join(hlsDirectory, "master.m3u8");
+
+          const masterPlaylist = `#EXTM3U
+          #EXT-X-VERSION:3
+
+          #EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080
+          1080p/playlist.m3u8
+
+          #EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1280x720
+          720p/playlist.m3u8
+
+          #EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION=854x480
+          480p/playlist.m3u8
+          `;
+
+          await writeFile(masterPlaylistPath, masterPlaylist, "utf8");
+
+          console.log(`Master playlist created: ${masterPlaylistPath}`);
+
+          const hlsObjectPrefix = `hls/${video.userId}/${video.id}`;
+
+          console.log(`Uploading HLS files to MinIO: ${hlsObjectPrefix}`);
+
+          await uploadDirectoryToMinIO(hlsDirectory, hlsObjectPrefix);
+
+          console.log("HLS uploaded successfully");
+
+          const hlsObjectKey = `hls/${video.userId}/${video.id}/master.m3u8`;
+
+          await Video.update(
+            {
+              hlsObjectKey,
+              status: "COMPLETED",
+            },
+            {
+              where: {
+                id: videoId,
+              },
+            },
+          );
+
+          console.log(`HLS path saved: ${hlsObjectKey}`);
+
+          await rm(hlsDirectory, {
+            recursive: true,
+            force: true,
+          });
+
+          console.log("HLS temporary directory deleted");
+
+          // 8. Save metadata to MySQL
 
           await Video.update(
             {
@@ -262,7 +357,7 @@ async function startWorker() {
           }
         }
 
-        // 9. Mark video update as completed
+        // 9. Mark video upload process as completed
         await Video.update(
           {
             status: "COMPLETED",
@@ -274,7 +369,7 @@ async function startWorker() {
           },
         );
 
-        // 9. Mark processing job as completed
+        // 10. Mark processing job as completed
 
         await ProcessingJob.update(
           {
@@ -290,7 +385,7 @@ async function startWorker() {
 
         console.log(`Job ${jobId} completed`);
 
-        // 10. Acknowledge RabbitMQ message
+        // 11. Acknowledge RabbitMQ message
 
         channel.ack(message);
       } catch (error) {
@@ -298,7 +393,7 @@ async function startWorker() {
 
         // Do not acknowledge the failed message.
         // For now, send it to RabbitMQ's dead-letter path
-        // / discard it according to the current queue setup.
+        // discard it according to the current queue setup.
         channel.nack(message, false, false);
       }
     });

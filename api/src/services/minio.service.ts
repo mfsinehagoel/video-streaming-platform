@@ -5,7 +5,7 @@ import {
 } from "@aws-sdk/client-s3";
 
 import { createWriteStream, createReadStream } from "fs";
-import { mkdir } from "fs/promises";
+import { mkdir, readdir, stat } from "fs/promises";
 import { pipeline } from "stream/promises";
 import path from "path";
 
@@ -59,4 +59,62 @@ export async function uploadToMinIO(
   });
 
   await minioClient.send(command);
+}
+
+async function getFilesRecursively(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, {
+    withFileTypes: true,
+  });
+
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...(await getFilesRecursively(fullPath)));
+    } else {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+export async function uploadDirectoryToMinIO(
+  localDirectory: string,
+  objectPrefix: string,
+): Promise<void> {
+  const files = await getFilesRecursively(localDirectory);
+
+  for (const file of files) {
+    const relativePath = path
+      .relative(localDirectory, file)
+      .split(path.sep)
+      .join("/");
+
+    const objectKey = `${objectPrefix}/${relativePath}`;
+
+    let contentType = "application/octet-stream";
+
+    if (file.endsWith(".m3u8")) {
+      contentType = "application/vnd.apple.mpegurl";
+    } else if (file.endsWith(".ts")) {
+      contentType = "video/mp2t";
+    }
+
+    const fileStats = await stat(file);
+
+    console.log(`Uploading HLS file: ${objectKey}`);
+
+    await minioClient.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: objectKey,
+        Body: createReadStream(file),
+        ContentLength: fileStats.size,
+        ContentType: contentType,
+      }),
+    );
+  }
 }

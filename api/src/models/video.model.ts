@@ -35,6 +35,8 @@ export class Video extends Model<
   declare originalObjectKey: string | null;
   declare thumbnailObjectKey: string | null;
 
+  declare hlsObjectKey: string | null;
+
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -111,6 +113,12 @@ Video.init(
       type: DataTypes.STRING(500),
       allowNull: true,
       field: "thumbnail_object_key",
+    },
+
+    hlsObjectKey: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      field: "hls_object_key",
     },
 
     createdAt: {
