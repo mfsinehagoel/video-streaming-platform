@@ -118,3 +118,22 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.quality-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.quality-control label {
+  font-weight: 500;
+}
+
+.quality-control select {
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}

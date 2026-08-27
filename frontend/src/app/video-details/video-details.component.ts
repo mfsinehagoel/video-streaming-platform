@@ -1,7 +1,16 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  OnDestroy,
+} from '@angular/core';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import Hls from 'hls.js';
 
 @Component({
   selector: 'app-video-details',
@@ -10,7 +19,10 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule, RouterLink],
 })
-export class VideoDetailsComponent implements OnInit {
+export class VideoDetailsComponent implements OnInit, OnDestroy {
+  @ViewChild('videoPlayer')
+  videoPlayer!: ElementRef<HTMLVideoElement>;
+
   video: any = null;
   videoId: string | null = null;
 
@@ -18,6 +30,15 @@ export class VideoDetailsComponent implements OnInit {
   error = '';
   deleting = false;
   private cdr = inject(ChangeDetectorRef);
+  private hls: Hls | null = null;
+
+  qualityLevels: {
+    index: number;
+    height: number;
+    bitrate: number;
+  }[] = [];
+
+  selectedQuality = -1;
 
   constructor(
     private route: ActivatedRoute,
@@ -40,17 +61,86 @@ export class VideoDetailsComponent implements OnInit {
   loadVideo(): void {
     this.http.get<any>(`/api/videos/${this.videoId}`).subscribe({
       next: (response) => {
+        console.log('Video details:', response);
+
         this.video = response.video;
 
         this.loading = false;
         this.cdr.detectChanges();
+
+        if (this.video.hlsObjectKey) {
+          setTimeout(() => {
+            this.initializeHLS();
+          });
+        }
       },
-      error: () => {
+
+      error: (error) => {
+        console.error('Failed to load video:', error);
+
         this.error = 'Failed to load video';
         this.loading = false;
         this.cdr.detectChanges();
       },
     });
+  }
+
+  initializeHLS(): void {
+    const video = this.videoPlayer.nativeElement;
+
+    const hlsUrl = this.hlsUrl;
+
+    if (Hls.isSupported()) {
+      this.hls = new Hls();
+
+      this.hls.loadSource(hlsUrl);
+
+      this.hls.attachMedia(video);
+
+      this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('HLS manifest loaded successfully');
+
+        this.qualityLevels = this.hls!.levels.map((level, index) => ({
+          index,
+          height: level.height,
+          bitrate: level.bitrate,
+        }))
+          .filter((level) => level.height > 0)
+          .sort((a, b) => b.height - a.height);
+
+        console.log('Available quality levels:', this.qualityLevels);
+        this.cdr.detectChanges();
+      });
+
+      this.hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error:', data);
+      });
+
+      return;
+    }
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = hlsUrl;
+
+      console.log('Using native HLS support');
+    }
+  }
+
+  changeQuality(levelIndex: number): void {
+    if (!this.hls) {
+      return;
+    }
+
+    this.selectedQuality = levelIndex;
+
+    this.hls.currentLevel = levelIndex;
+
+    console.log(
+      'Selected quality:',
+      levelIndex === -1
+        ? 'Auto'
+        : `${this.qualityLevels.find((level) => level.index === levelIndex)?.height}p`,
+    );
   }
 
   get videoUrl(): string {
@@ -63,6 +153,10 @@ export class VideoDetailsComponent implements OnInit {
 
   get downloadUrl(): string {
     return `/api/videos/${this.videoId}/download`;
+  }
+
+  get hlsUrl(): string {
+    return `/api/videos/${this.videoId}/hls/master.m3u8`;
   }
 
   deleteVideo(): void {
@@ -93,5 +187,12 @@ export class VideoDetailsComponent implements OnInit {
         alert('Failed to delete video. Please try again.');
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
   }
 }

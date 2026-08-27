@@ -12,11 +12,21 @@
 
     <!-- Video Player -->
     <div class="video-player">
-      <video controls preload="metadata" [poster]="thumbnailUrl">
-        <source [src]="videoUrl" type="video/mp4" />
-
+      <video #videoPlayer controls preload="metadata" [poster]="thumbnailUrl">
         Your browser does not support video playback.
       </video>
+    </div>
+
+    <div class="quality-control" *ngIf="qualityLevels.length > 0">
+      <label for="quality"> Quality: </label>
+
+      <select [value]="selectedQuality" (change)="changeQuality(+$any($event.target).value)">
+        <option [value]="-1">Auto</option>
+
+        <option *ngFor="let level of qualityLevels" [value]="level.index">
+          {{ level.height }}p
+        </option>
+      </select>
     </div>
 
     <div class="video-actions">
