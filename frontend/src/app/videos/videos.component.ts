@@ -83,6 +83,6 @@ export class VideosComponent implements OnInit {
   }
 
   goToAdminDashboard() {
-	this.router.navigate(['/dashboard']);
+	this.router.navigate(['/admin-dashboard']);
   }
 }

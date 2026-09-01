@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { VideosComponent } from './videos/videos.component';
 import { UploadComponent } from './upload/upload.component';
 import { VideoDetailsComponent } from './video-details/video-details.component';
+import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard.component';
 
 export const routes: Routes = [
   {
@@ -20,5 +21,9 @@ export const routes: Routes = [
   {
     path: 'video/:id',
     component: VideoDetailsComponent,
+  },
+  {
+    path: 'admin-dashboard',
+    component: AdminDashboardComponent,
   },
 ];

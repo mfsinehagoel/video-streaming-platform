@@ -1,0 +1,331 @@
+<div class="dashboard">
+  <!-- Header -->
+
+  <div class="dashboard-header">
+    <div>
+      <h1>Admin Dashboard</h1>
+
+      <p>Monitor videos, processing jobs and platform statistics.</p>
+    </div>
+
+    <button class="refresh-button" (click)="loadDashboard(); loadVideos()">Refresh</button>
+  </div>
+
+  <!-- Error -->
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- Loading -->
+
+  <div *ngIf="loading" class="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Statistics -->
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Videos</div>
+
+        <div class="stat-value">
+          {{ stats.videos.total }}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Storage Usage</div>
+
+        <div class="stat-value">
+          {{ formatStorage(stats.videos.storageUsage) }}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Uploads</div>
+
+        <div class="stat-value">
+          {{ stats.videos.uploads }}
+        </div>
+      </div>
+
+      <div class="stat-card processing">
+        <div class="stat-label">Processing</div>
+
+        <div class="stat-value">
+          {{ stats.videos.processing }}
+        </div>
+      </div>
+
+      <div class="stat-card queued">
+        <div class="stat-label">Queued Jobs</div>
+
+        <div class="stat-value">
+          {{ stats.jobs.queued }}
+        </div>
+      </div>
+
+      <div class="stat-card failed">
+        <div class="stat-label">Failed Jobs</div>
+
+        <div class="stat-value">
+          {{ stats.jobs.failed }}
+        </div>
+      </div>
+    </section>
+
+    <!-- Processing / statistics -->
+
+    <section class="secondary-grid">
+      <div class="info-card">
+        <h3>Processing</h3>
+
+        <div class="info-row">
+          <span>Active Jobs</span>
+          <strong>
+            {{ stats.jobs.active }}
+          </strong>
+        </div>
+
+        <div class="info-row">
+          <span>Queued Jobs</span>
+          <strong>
+            {{ stats.jobs.queued }}
+          </strong>
+        </div>
+
+        <div class="info-row">
+          <span>Failed Jobs</span>
+          <strong>
+            {{ stats.jobs.failed }}
+          </strong>
+        </div>
+
+        <div class="info-row">
+          <span>Completed Videos</span>
+          <strong>
+            {{ stats.videos.completed }}
+          </strong>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3>Performance</h3>
+
+        <div class="info-row">
+          <span> Average Processing Time </span>
+
+          <strong>
+            {{ formatProcessingTime(stats.averageProcessingTime) }}
+          </strong>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3>Video Statistics</h3>
+
+        <div class="info-row">
+          <span> Total Views </span>
+
+          <strong>
+            {{ stats.statistics.views }}
+          </strong>
+        </div>
+
+        <div class="info-row">
+          <span> Total Downloads </span>
+
+          <strong>
+            {{ stats.statistics.downloads }}
+          </strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video browser -->
+
+    <section class="videos-section">
+      <div class="section-header">
+        <div>
+          <h2>Video Browser</h2>
+
+          <p>Search and filter uploaded videos.</p>
+        </div>
+      </div>
+
+      <!-- Filters -->
+
+      <div class="filters">
+        <div class="filter">
+          <label>Status</label>
+
+          <select [(ngModel)]="filters.status">
+            <option value="">All</option>
+
+            <option value="QUEUED">Queued</option>
+
+            <option value="PROCESSING">Processing</option>
+
+            <option value="COMPLETED">Completed</option>
+
+            <option value="FAILED">Failed</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label>Resolution</label>
+
+          <select [(ngModel)]="filters.resolution">
+            <option value="">All</option>
+
+            <option value="1080p">1080p</option>
+
+            <option value="720p">720p</option>
+
+            <option value="480p">480p</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label>Date From</label>
+
+          <input type="date" [(ngModel)]="filters.dateFrom" />
+        </div>
+
+        <div class="filter">
+          <label>Date To</label>
+
+          <input type="date" [(ngModel)]="filters.dateTo" />
+        </div>
+
+        <div class="filter">
+          <label> Min Duration (seconds) </label>
+
+          <input type="number" min="0" [(ngModel)]="filters.minDuration" />
+        </div>
+
+        <div class="filter">
+          <label> Max Duration (seconds) </label>
+
+          <input type="number" min="0" [(ngModel)]="filters.maxDuration" />
+        </div>
+
+        <div class="filter-actions">
+          <button class="apply-button" (click)="applyFilters()">Apply Filters</button>
+
+          <button class="clear-button" (click)="clearFilters()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Loading videos -->
+
+      <div *ngIf="loadingVideos" class="loading">Loading videos...</div>
+
+      <!-- Video table -->
+
+      <div *ngIf="!loadingVideos" class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+
+              <th>Video</th>
+
+              <th>Status</th>
+
+              <th>Resolution</th>
+
+              <th>Duration</th>
+
+              <th>Size</th>
+
+              <th>Views</th>
+
+              <th>Downloads</th>
+
+              <th>Uploaded</th>
+
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let video of videos">
+              <td>#{{ video.id }}</td>
+
+              <td>
+                <div class="video-title">
+                  {{ video.title }}
+                </div>
+
+                <div *ngIf="video.originalFilename" class="filename">
+                  {{ video.originalFilename }}
+                </div>
+              </td>
+
+              <td>
+                <span
+                  class="status"
+                  [ngClass]="{
+                    'status-queued': video.status === 'QUEUED',
+
+                    'status-processing': video.status === 'PROCESSING',
+
+                    'status-completed': video.status === 'COMPLETED',
+
+                    'status-failed': video.status === 'FAILED',
+                  }"
+                >
+                  {{ video.status }}
+                </span>
+              </td>
+
+              <td>
+                {{ video.resolution || '-' }}
+              </td>
+
+              <td>
+                {{ formatDuration(video.duration) }}
+              </td>
+
+              <td>
+                {{ video.fileSize ? formatStorage(video.fileSize) : '-' }}
+              </td>
+
+              <td>
+                {{ video.views ?? 0 }}
+              </td>
+
+              <td>
+                {{ video.downloads ?? 0 }}
+              </td>
+
+              <td>
+                {{ formatDate(video.createdAt) }}
+              </td>
+
+              <td>
+                <button
+                  *ngIf="video.status === 'FAILED'"
+                  class="retry-button"
+                  [disabled]="retryingJobId === video.id"
+                  (click)="retryJob(video)"
+                >
+                  <span *ngIf="retryingJobId !== video.id"> Retry </span>
+
+                  <span *ngIf="retryingJobId === video.id"> Retrying... </span>
+                </button>
+
+                <span *ngIf="video.status !== 'FAILED'" class="no-action"> - </span>
+              </td>
+            </tr>
+
+            <tr *ngIf="videos.length === 0">
+              <td colspan="10" class="empty">No videos found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</div>
