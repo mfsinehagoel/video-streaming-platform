@@ -4,6 +4,7 @@ import cors from "cors";
 import { sequelize } from "./config/database";
 
 import videosRoutes from "./videos/videos.routes";
+import adminRoutes from "./admin/admin.routes";
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/videos", videosRoutes);
+app.use("/api/admin", adminRoutes);
 
 sequelize
   .authenticate()

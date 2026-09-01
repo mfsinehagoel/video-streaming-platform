@@ -308,7 +308,7 @@
                 <button
                   *ngIf="video.status === 'FAILED'"
                   class="retry-button"
-                  [disabled]="retryingJobId === video.id"
+                  [disabled]="retryingJobId === video.processingJob?.id"
                   (click)="retryJob(video)"
                 >
                   <span *ngIf="retryingJobId !== video.id"> Retry </span>

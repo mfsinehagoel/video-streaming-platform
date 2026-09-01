@@ -61,20 +61,20 @@
               <span>
                 {{ formatFileSize(video.fileSize) }}
               </span>
+			  <div class="status-row">
+				<span
+				  class="status"
+				  [class.completed]="video.status === 'COMPLETED'"
+				  [class.processing]="video.status === 'PROCESSING'"
+				  [class.queued]="video.status === 'QUEUED'"
+				  [class.failed]="video.status === 'FAILED'"
+				>
+				  {{ video.status }}
+				</span>
+			  </div>
             </div>
 
-            <div class="status-row">
-              <span
-                class="status"
-                [class.completed]="video.status === 'COMPLETED'"
-                [class.processing]="video.status === 'PROCESSING'"
-                [class.queued]="video.status === 'QUEUED'"
-                [class.failed]="video.status === 'FAILED'"
-              >
-                {{ video.status }}
-              </span>
-			  <button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
-            </div>
+			<button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
           </div>
         </div>
       }
