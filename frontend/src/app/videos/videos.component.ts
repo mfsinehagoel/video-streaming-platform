@@ -81,4 +81,8 @@ export class VideosComponent implements OnInit {
   goToUpload() {
     this.router.navigate(['/upload']);
   }
+
+  goToAdminDashboard() {
+	this.router.navigate(['/dashboard']);
+  }
 }

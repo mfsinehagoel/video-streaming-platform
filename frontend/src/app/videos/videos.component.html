@@ -6,6 +6,7 @@
     </div>
 
     <button class="upload-button" (click)="goToUpload()">Upload Video</button>
+    <button class="upload-button" (click)="goToAdminDashboard()">Admin Dashboard</button>
   </div>
 
   @if (loading) {
@@ -72,8 +73,8 @@
               >
                 {{ video.status }}
               </span>
+			  <button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
             </div>
-            <button class="download-button" [routerLink]="['/video', video.id]">Watch</button>
           </div>
         </div>
       }
