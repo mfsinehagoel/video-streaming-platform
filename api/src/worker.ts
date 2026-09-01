@@ -21,6 +21,12 @@ import path from "path";
 import { generateHLS } from "./services/hls.service";
 import { ConsumeMessage } from "amqplib";
 
+import {
+  redisClient,
+  invalidateVideoListCache,
+  initializeRedis,
+} from "./config/redis";
+
 async function startWorker() {
   try {
     // 1. Connect to MySQL
@@ -33,6 +39,11 @@ async function startWorker() {
     await sequelize.sync({ alter: true });
 
     console.log("Worker: Database synchronized successfully");
+
+    // 3. Caching through Redis
+    await initializeRedis();
+
+    console.log("Worker: Redis initialized successfully");
 
     // 3. Connect to RabbitMQ
 
@@ -111,6 +122,11 @@ async function startWorker() {
               },
             },
           );
+
+          await redisClient.del(`video:${videoId}`);
+          await invalidateVideoListCache();
+
+          console.log(`Video ${videoId} marked as PROCESSING`);
 
           // 3. Create temporary file path
 
@@ -342,7 +358,7 @@ async function startWorker() {
                 height: metadata.height,
                 codec: metadata.codec,
                 thumbnailObjectKey,
-                status: "PROCESSING",
+                status: "COMPLETED",
               },
               {
                 where: {
@@ -352,6 +368,13 @@ async function startWorker() {
             );
 
             console.log(`Video ${videoId} metadata updated successfully`);
+
+            await rm(hlsDirectory, {
+              recursive: true,
+              force: true,
+            });
+
+            console.log("HLS temporary directory deleted");
           } finally {
             const temporaryFiles = [
               tempFilePath,
@@ -372,17 +395,12 @@ async function startWorker() {
             }
           }
 
-          // 9. Mark video upload process as completed
-          await Video.update(
-            {
-              status: "COMPLETED",
-            },
-            {
-              where: {
-                id: videoId,
-              },
-            },
-          );
+          // 9. Invalidate Redis cache after processing completes
+
+          await redisClient.del(`video:${videoId}`);
+          await invalidateVideoListCache();
+
+          console.log(`Video ${videoId} processing completed`);
 
           // 10. Mark processing job as completed
 
@@ -406,12 +424,13 @@ async function startWorker() {
         } catch (error) {
           console.error(`Worker processing failed for job ${jobId}:`, error);
 
-        // Do not acknowledge the failed message.
-        // For now, send it to RabbitMQ's dead-letter path
-        // discard it according to the current queue setup.
-        channel.nack(message, false, false);
-      }
-    });
+          // Do not acknowledge the failed message.
+          // For now, send it to RabbitMQ's dead-letter path
+          // discard it according to the current queue setup.
+          channel.nack(message, false, false);
+        }
+      },
+    );
   } catch (error) {
     console.error("Worker startup failed:", error);
     process.exit(1);

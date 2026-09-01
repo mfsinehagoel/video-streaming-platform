@@ -1,5 +1,4 @@
 services:
-
   frontend:
     build:
       context: ./frontend
@@ -52,7 +51,17 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "video_user", "-pvideo_password"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "video_user",
+          "-pvideo_password",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -93,7 +102,7 @@ services:
       - api
     networks:
       - video-network
-  
+
   # 9000 → Object storage API
   # 9001 → Web administration console
   minio:
@@ -143,6 +152,15 @@ services:
       minio:
         condition: service_started
 
+    networks:
+      - video-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: video-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
       - video-network
 

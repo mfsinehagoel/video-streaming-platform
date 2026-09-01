@@ -1,6 +1,8 @@
 import app from "./app";
 import { sequelize } from "./config/database";
 
+import { initializeRedis } from "./config/redis";
+
 import { initializeRabbitMQ } from './config/rabbitmq';
 
 import { initializeMinIO } from './config/minio-init';
@@ -18,6 +20,10 @@ async function startServer() {
     await sequelize.sync();
 
     console.log("Database synchronized successfully");
+
+	await initializeRedis();
+
+    console.log("Redis initialized successfully");
 
 	await initializeRabbitMQ();
 

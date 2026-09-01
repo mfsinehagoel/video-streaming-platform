@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-	"worker": "node dist/workers/worker.js",
+    "worker": "node dist/workers/worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -23,6 +23,7 @@
     "minio": "^8.0.7",
     "multer": "^2.2.0",
     "mysql2": "^3.23.4",
+    "redis": "^6.2.1",
     "sequelize": "^6.37.8"
   },
   "devDependencies": {

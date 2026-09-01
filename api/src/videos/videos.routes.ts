@@ -15,6 +15,7 @@ import { getThumbnail } from "./thumbnail.controller";
 import { downloadOriginalVideo } from "./download.controller";
 import { getVideoStatus } from "./status.controller";
 import { deleteVideo } from "./delete.controller";
+import { redisClient } from "../config/redis";
 
 const router = Router();
 
@@ -49,6 +50,8 @@ router.post("/upload", upload.single("video"), async (req, res) => {
 
       originalObjectKey: null,
     });
+	
+	await redisClient.del("videos:all");
 
     // 2. Generate object key
     const objectKey = `originals/${userId}/${video.id}/${req.file.originalname}`;

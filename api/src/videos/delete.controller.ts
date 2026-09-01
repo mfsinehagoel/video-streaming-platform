@@ -1,16 +1,7 @@
 import { Request, Response } from "express";
-import { Video, VideoVariant, ProcessingJob } from "../models";
-import { minioClient, MINIO_BUCKET } from "../config/minio";
+import { Video, VideoVariant } from "../models";
 import { deleteFromMinIO } from "../services/minio.service";
-
-async function deleteObjectIfExists(objectKey: string) {
-  try {
-    await minioClient.removeObject(MINIO_BUCKET, objectKey);
-    console.log(`Deleted MinIO object: ${objectKey}`);
-  } catch (error) {
-    console.error(`Failed to delete MinIO object: ${objectKey}`, error);
-  }
-}
+import { redisClient, invalidateVideoListCache } from "../config/redis";
 
 export const deleteVideo = async (req: Request, res: Response) => {
   try {
@@ -77,6 +68,9 @@ export const deleteVideo = async (req: Request, res: Response) => {
 
     // Delete video record
     await video.destroy();
+
+    await redisClient.del(`video:${videoId}`);
+	await invalidateVideoListCache();
 
     return res.status(200).json({
       success: true,

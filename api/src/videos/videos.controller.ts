@@ -3,6 +3,7 @@ import { VideosService } from "./videos.service";
 
 import { Video, VideoVariant } from "../models";
 import { minioClient, MINIO_BUCKET } from "../config/minio";
+import { redisClient } from "../config/redis";
 
 const videosService = new VideosService();
 
@@ -68,6 +69,31 @@ export async function getVideos(req: Request, res: Response) {
       });
     }
 
+    // Create a unique cache key for this query
+    const cacheKey = [
+      "videos:list",
+      `search=${search ?? ""}`,
+      `status=${status ?? ""}`,
+      `page=${page}`,
+      `limit=${limit}`,
+    ].join(":");
+
+    // 1. Check Redis first
+    const cachedVideos = await redisClient.get(cacheKey);
+
+    if (cachedVideos) {
+      console.log(`Redis cache hit: ${cacheKey}`);
+
+      return res.json({
+        success: true,
+        ...JSON.parse(cachedVideos),
+        cached: true,
+      });
+    }
+
+    console.log(`Redis cache miss: ${cacheKey}`);
+
+    // 2. Fetch from MySQL
     const result = await videosService.getVideos({
       ...(search !== undefined && { search }),
       ...(status !== undefined && { status }),
@@ -75,9 +101,14 @@ export async function getVideos(req: Request, res: Response) {
       limit,
     });
 
+    // 3. Cache the result for 60 seconds
+    await redisClient.setEx(cacheKey, 60, JSON.stringify(result));
+
+    // 4. Return result
     return res.json({
       success: true,
       ...result,
+      cached: false,
     });
   } catch (error) {
     console.error("Get videos error:", error);
@@ -93,6 +124,31 @@ export async function getVideoById(req: Request, res: Response) {
   try {
     const id = Number(req.params.id);
 
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid video ID",
+      });
+    }
+
+    const cacheKey = `video:${id}`;
+
+    // 1. Check Redis first
+    const cachedVideo = await redisClient.get(cacheKey);
+
+    if (cachedVideo) {
+      console.log(`Redis cache hit: ${cacheKey}`);
+
+      return res.json({
+        success: true,
+        video: JSON.parse(cachedVideo),
+        cached: true,
+      });
+    }
+
+    console.log(`Redis cache miss: ${cacheKey}`);
+
+    // 2. If not cached, fetch from MySQL
     const video = await videosService.getVideoById(id);
 
     if (!video) {
@@ -102,9 +158,14 @@ export async function getVideoById(req: Request, res: Response) {
       });
     }
 
+    // 3. Store result in Redis for 5 minutes
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(video));
+
+    // 4. Return MySQL result
     return res.json({
       success: true,
       video,
+      cached: false,
     });
   } catch (error) {
     console.error("Get video error:", error);
