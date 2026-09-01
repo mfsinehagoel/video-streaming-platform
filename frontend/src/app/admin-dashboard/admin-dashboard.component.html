@@ -311,9 +311,9 @@
                   [disabled]="retryingJobId === video.processingJob?.id"
                   (click)="retryJob(video)"
                 >
-                  <span *ngIf="retryingJobId !== video.id"> Retry </span>
+                  <span *ngIf="retryingJobId !== video.processingJob?.id"> Retry </span>
 
-                  <span *ngIf="retryingJobId === video.id"> Retrying... </span>
+                  <span *ngIf="retryingJobId === video.processingJob?.id"> Retrying... </span>
                 </button>
 
                 <span *ngIf="video.status !== 'FAILED'" class="no-action"> - </span>

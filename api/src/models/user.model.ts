@@ -1,4 +1,5 @@
 import {
+  CreationOptional,
   DataTypes,
   InferAttributes,
   InferCreationAttributes,
@@ -11,14 +12,14 @@ export class User extends Model<
   InferAttributes<User>,
   InferCreationAttributes<User>
 > {
-  declare id: number;
+  declare id: CreationOptional<number>;
   declare name: string;
   declare email: string;
   declare passwordHash: string;
   declare role: "USER" | "ADMIN";
 
-  declare createdAt: Date;
-  declare updatedAt: Date;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
 User.init(
@@ -54,13 +55,13 @@ User.init(
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'created_at',
+      field: "created_at",
     },
 
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'updated_at',
+      field: "updated_at",
     },
   },
   {

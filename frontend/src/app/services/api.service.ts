@@ -1,8 +1,9 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Video } from '../models/video.model';
+import { AuthService } from './auth.service';
 
 export interface VideosResponse {
   success: boolean;
@@ -24,7 +25,10 @@ export interface VideoResponse {
   providedIn: 'root',
 })
 export class ApiService {
-  private http = inject(HttpClient);
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
 
   private readonly baseUrl = '/api';
 
@@ -69,13 +73,15 @@ export class ApiService {
     return this.http.delete<{ success: boolean; message: string }>(`${this.baseUrl}/videos/${id}`);
   }
 
-  uploadVideo(file: File, title: string, userId: number = 1) {
+  uploadVideo(file: File, title: string) {
+    const user = this.authService.getUser();
+    if (!user?.id) {
+      throw new Error('User is not logged in');
+    }
     const formData = new FormData();
-
     formData.append('video', file);
     formData.append('title', title);
-    formData.append('userId', userId.toString());
-
+    formData.append('userId', user.id.toString());
     return this.http.post<{
       success: boolean;
       message: string;
@@ -87,6 +93,6 @@ export class ApiService {
         status: string;
         originalObjectKey: string;
       };
-    }>('/api/videos/upload', formData);
+    }>(`${this.baseUrl}/videos/upload`, formData);
   }
 }

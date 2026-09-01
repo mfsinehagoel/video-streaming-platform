@@ -59,7 +59,7 @@ export class UploadComponent {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.apiService.uploadVideo(this.selectedFile, this.title.trim(), 1).subscribe({
+    this.apiService.uploadVideo(this.selectedFile, this.title.trim()).subscribe({
       next: (response) => {
         console.log('Upload response:', response);
 

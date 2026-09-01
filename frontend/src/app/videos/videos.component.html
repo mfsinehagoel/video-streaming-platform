@@ -1,4 +1,15 @@
 <div class="videos-page">
+  <header class="navbar">
+    <div class="logo">Video Streaming</div>
+
+    <div class="user-section">
+      @if (user) {
+        <span> Welcome, {{ user.name }} </span>
+      }
+
+      <button type="button" (click)="logout()">Logout</button>
+    </div>
+  </header>
   <div class="page-header">
     <div>
       <h1>My Videos</h1>
@@ -6,7 +17,9 @@
     </div>
 
     <button class="upload-button" (click)="goToUpload()">Upload Video</button>
-    <button class="upload-button" (click)="goToAdminDashboard()">Admin Dashboard</button>
+    @if (user?.role === 'ADMIN') {
+      <button class="upload-button" (click)="goToAdminDashboard()">Admin Dashboard</button>
+    }
   </div>
 
   @if (loading) {
@@ -61,20 +74,20 @@
               <span>
                 {{ formatFileSize(video.fileSize) }}
               </span>
-			  <div class="status-row">
-				<span
-				  class="status"
-				  [class.completed]="video.status === 'COMPLETED'"
-				  [class.processing]="video.status === 'PROCESSING'"
-				  [class.queued]="video.status === 'QUEUED'"
-				  [class.failed]="video.status === 'FAILED'"
-				>
-				  {{ video.status }}
-				</span>
-			  </div>
+              <div class="status-row">
+                <span
+                  class="status"
+                  [class.completed]="video.status === 'COMPLETED'"
+                  [class.processing]="video.status === 'PROCESSING'"
+                  [class.queued]="video.status === 'QUEUED'"
+                  [class.failed]="video.status === 'FAILED'"
+                >
+                  {{ video.status }}
+                </span>
+              </div>
             </div>
 
-			<button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
+            <button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
           </div>
         </div>
       }

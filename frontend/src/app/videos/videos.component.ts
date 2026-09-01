@@ -1,9 +1,11 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
 import { ApiService } from '../services/api.service';
 import { Video } from '../models/video.model';
+
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-videos',
@@ -13,14 +15,22 @@ import { Video } from '../models/video.model';
   styleUrl: './videos.component.css',
 })
 export class VideosComponent implements OnInit {
-  private api = inject(ApiService);
-  private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
-
   videos: Video[] = [];
 
   loading = true;
   error = '';
+
+  user: any;
+
+  constructor(
+    private authService: AuthService,
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private router: Router,
+  ) {
+    this.user = this.authService.getUser();
+	console.log(this.user);
+  }
 
   ngOnInit(): void {
     this.loadVideos();
@@ -83,6 +93,11 @@ export class VideosComponent implements OnInit {
   }
 
   goToAdminDashboard() {
-	this.router.navigate(['/admin-dashboard']);
+    this.router.navigate(['/admin-dashboard']);
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

@@ -12,6 +12,8 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+    env_file:
+      - ./api/.env
 
     container_name: video-api
 
