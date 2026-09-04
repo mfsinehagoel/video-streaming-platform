@@ -24,6 +24,12 @@ export class VideosComponent implements OnInit {
   user: any;
   searchTerm = '';
 
+  currentPage = 1;
+  pageSize = 12;
+
+  totalVideos = 0;
+  totalPages = 0;
+
   constructor(
     private authService: AuthService,
     private api: ApiService,
@@ -37,6 +43,7 @@ export class VideosComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       this.searchTerm = params['search'] || '';
+      this.currentPage = 1;
       this.loadVideos();
     });
   }
@@ -45,25 +52,52 @@ export class VideosComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.api.getVideos(1, 12, this.searchTerm).subscribe({
+    this.api.getVideos(this.currentPage, this.pageSize, this.searchTerm).subscribe({
       next: (response) => {
         this.videos = response.videos;
-        this.loading = false;
 
+        this.totalVideos = response.pagination.total;
+        this.totalPages = response.pagination.totalPages;
+        this.currentPage = response.pagination.page;
+
+        this.loading = false;
         this.cdr.detectChanges();
       },
 
       error: () => {
         this.error = 'Failed to load videos';
         this.loading = false;
-
         this.cdr.detectChanges();
       },
     });
   }
 
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) {
+      return;
+    }
+
+    this.currentPage = page;
+    this.loadVideos();
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadVideos();
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadVideos();
+    }
+  }
+
   searchVideos(): void {
     const search = this.searchTerm.trim();
+    this.currentPage = 1;
 
     this.router.navigate(['/videos'], {
       queryParams: search ? { search } : {},
@@ -72,6 +106,7 @@ export class VideosComponent implements OnInit {
 
   clearSearch(): void {
     this.searchTerm = '';
+	this.currentPage = 1;
 
     this.router.navigate(['/videos']);
   }
