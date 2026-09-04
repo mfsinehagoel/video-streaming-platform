@@ -1,14 +1,10 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 
-import { sequelize } from "../config/database";
 import { ProcessingJob, Video, VideoVariant } from "../models";
 import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
 
-// ======================================================
 // GET /api/admin/dashboard
-// ======================================================
-
 export async function getDashboard(req: Request, res: Response) {
   try {
     const [
@@ -92,10 +88,7 @@ export async function getDashboard(req: Request, res: Response) {
       }),
     ]);
 
-    // ================================================
     // Average processing time
-    // ================================================
-
     let averageProcessingTime = 0;
 
     if (completedJobs.length > 0) {
@@ -156,29 +149,21 @@ export async function getDashboard(req: Request, res: Response) {
   }
 }
 
-// ======================================================
 // GET /api/admin/videos
-// ======================================================
-
 export async function getAdminVideos(req: Request, res: Response) {
   try {
     const { status, resolution, dateFrom, dateTo, minDuration, maxDuration } =
       req.query;
 
-    // ================================================
     // Build video filters
-    // ================================================
-
     const where: any = {};
 
     // Status
-
     if (status && typeof status === "string") {
       where.status = status;
     }
 
     // Date range
-
     if (dateFrom || dateTo) {
       where.createdAt = {};
 
@@ -192,7 +177,6 @@ export async function getAdminVideos(req: Request, res: Response) {
     }
 
     // Duration
-
     if (minDuration || maxDuration) {
       where.duration = {};
 
@@ -205,10 +189,7 @@ export async function getAdminVideos(req: Request, res: Response) {
       }
     }
 
-    // ================================================
     // Fetch videos
-    // ================================================
-
     const videos = await Video.findAll({
       where,
 
@@ -240,10 +221,7 @@ export async function getAdminVideos(req: Request, res: Response) {
       order: [["createdAt", "DESC"]],
     });
 
-    // ================================================
     // Resolution filter
-    // ================================================
-
     let result = videos;
 
     if (resolution && typeof resolution === "string") {
@@ -256,10 +234,7 @@ export async function getAdminVideos(req: Request, res: Response) {
       });
     }
 
-    // ================================================
     // Response
-    // ================================================
-
     const data = result.map((video: any) => {
       const variants = video.variants || [];
 
@@ -325,10 +300,7 @@ export async function getAdminVideos(req: Request, res: Response) {
   }
 }
 
-// ======================================================
 // GET /api/admin/jobs
-// ======================================================
-
 export async function getAdminJobs(req: Request, res: Response) {
   try {
     const { status } = req.query;
@@ -361,10 +333,7 @@ export async function getAdminJobs(req: Request, res: Response) {
   }
 }
 
-// ======================================================
 // POST /api/admin/jobs/:id/retry
-// ======================================================
-
 export async function retryJob(req: Request, res: Response) {
   try {
     const jobId = Number(req.params.id);
@@ -376,10 +345,7 @@ export async function retryJob(req: Request, res: Response) {
       });
     }
 
-    // ================================================
     // Find job
-    // ================================================
-
     const job = await ProcessingJob.findByPk(jobId);
 
     if (!job) {
@@ -389,10 +355,7 @@ export async function retryJob(req: Request, res: Response) {
       });
     }
 
-    // ================================================
     // Only FAILED jobs can be manually retried
-    // ================================================
-
     if (job.status !== "FAILED") {
       return res.status(400).json({
         success: false,
@@ -400,10 +363,7 @@ export async function retryJob(req: Request, res: Response) {
       });
     }
 
-    // ================================================
     // Find video
-    // ================================================
-
     const video = await Video.findByPk(job.videoId);
 
     if (!video) {
@@ -413,10 +373,7 @@ export async function retryJob(req: Request, res: Response) {
       });
     }
 
-    // ================================================
     // Update job
-    // ================================================
-
     await job.update({
       status: "QUEUED",
 
@@ -427,18 +384,12 @@ export async function retryJob(req: Request, res: Response) {
       completedAt: null,
     });
 
-    // ================================================
     // Update video
-    // ================================================
-
     await video.update({
       status: "QUEUED",
     });
 
-    // ================================================
     // Publish RabbitMQ message
-    // ================================================
-
     const channel = getRabbitMQChannel();
 
     channel.sendToQueue(

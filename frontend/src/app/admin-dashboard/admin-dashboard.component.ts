@@ -119,10 +119,7 @@ export class AdminDashboardComponent implements OnInit {
     this.loadVideos();
   }
 
-  // --------------------------------------------------
   // Dashboard statistics
-  // --------------------------------------------------
-
   loadDashboard(): void {
     this.loading = true;
     this.error = '';
@@ -150,10 +147,7 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  // --------------------------------------------------
   // Videos
-  // --------------------------------------------------
-
   loadVideos(): void {
     this.loadingVideos = true;
 
@@ -227,10 +221,7 @@ export class AdminDashboardComponent implements OnInit {
     this.loadVideos();
   }
 
-  // --------------------------------------------------
   // Retry failed job
-  // --------------------------------------------------
-
   retryJob(video: AdminVideo): void {
     if (video.status !== 'FAILED' || !video.processingJob) {
       return;
@@ -268,10 +259,7 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  // --------------------------------------------------
   // Formatting helpers
-  // --------------------------------------------------
-
   formatStorage(bytes: number): string {
     if (!bytes || bytes <= 0) {
       return '0 B';

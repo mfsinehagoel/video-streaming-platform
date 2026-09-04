@@ -30,62 +30,57 @@ export class VideosService {
   }
 
   async getVideos(options?: {
-    search?: string | undefined;
-    status?: string | undefined;
-    page?: number | undefined;
-    limit?: number | undefined;
-  }) {
-    const { search, status, page = 1, limit = 10 } = options || {};
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const { search, page = 1, limit = 10 } = options || {};
 
-    const safePage = Math.max(1, page);
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 100);
+  const offset = (safePage - 1) * safeLimit;
 
-    const safeLimit = Math.min(Math.max(1, limit), 100);
-
-    const offset = (safePage - 1) * safeLimit;
-
-    const where = {
-      ...(search
-        ? {
-            [Op.or]: [
-              {
-                title: {
-                  [Op.like]: `%${search}%`,
-                },
+  const where = {
+    ...(search
+      ? {
+          [Op.or]: [
+            {
+              title: {
+                [Op.like]: `%${search}%`,
               },
-              {
-                originalFilename: {
-                  [Op.like]: `%${search}%`,
-                },
+            },
+            {
+              originalFilename: {
+                [Op.like]: `%${search}%`,
               },
-            ],
-          }
-        : {}),
+            },
+          ],
+        }
+      : {}),
 
-      ...(status
-        ? {
-            status,
-          }
-        : {}),
-    };
+    // Only return completed videos
+    status: "COMPLETED",
+  };
 
-    const { count, rows } = await Video.findAndCountAll({
-      where,
+  const { count, rows } = await Video.findAndCountAll({
+    where,
+    limit: safeLimit,
+    offset,
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    videos: rows,
+
+    pagination: {
+      total: count,
+      page: safePage,
       limit: safeLimit,
-      offset,
-      order: [["createdAt", "DESC"]],
-    });
-
-    return {
-      videos: rows,
-
-      pagination: {
-        total: count,
-        page: safePage,
-        limit: safeLimit,
-        totalPages: Math.ceil(count / safeLimit),
-      },
-    };
-  }
+      totalPages: Math.ceil(count / safeLimit),
+    },
+  };
+}
 
   async getVideoById(id: number) {
     return Video.findByPk(id);
@@ -105,8 +100,6 @@ export async function processVideoMetadata(videoId: number, objectKey: string) {
     // Extract metadata using FFprobe
     const metadata = await extractVideoMetadata(tempFilePath);
 
-    console.log("Video metadata:", metadata);
-
     // Update database
     await Video.update(
       {
@@ -123,11 +116,8 @@ export async function processVideoMetadata(videoId: number, objectKey: string) {
       },
     );
 
-    console.log(`Video ${videoId} processed successfully`);
-
     return metadata;
   } catch (error) {
-    console.error(`Failed to process video ${videoId}:`, error);
 
     await Video.update(
       {

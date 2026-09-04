@@ -1,6 +1,6 @@
 <div class="videos-page">
   <header class="navbar">
-    <div class="logo">Video Streaming</div>
+    <div class="logo">Video Streaming - Manage and watch your uploaded videos</div>
 
     <div class="user-section">
       @if (user) {
@@ -12,14 +12,21 @@
   </header>
   <div class="page-header">
     <div>
-      <h1>My Videos</h1>
-      <p>Manage and watch your uploaded videos.</p>
+      <h3>My Videos</h3>
     </div>
+    <div class="search-container">
+      <input type="text" placeholder="Search videos..." [(ngModel)]="searchTerm" />
 
-    <button class="upload-button" (click)="goToUpload()">Upload Video</button>
-    @if (user?.role === 'ADMIN') {
-      <button class="upload-button" (click)="goToAdminDashboard()">Admin Dashboard</button>
-    }
+      <button type="button" (click)="searchVideos()">Search</button>
+
+      <button type="button" (click)="clearSearch()">Clear</button>
+    </div>
+    <div class="upload-btns">
+      <button class="upload-button" (click)="goToUpload()">Upload Video</button>
+      @if (user?.role === 'ADMIN') {
+        <button class="upload-button" (click)="goToAdminDashboard()">Admin Dashboard</button>
+      }
+    </div>
   </div>
 
   @if (loading) {
@@ -44,7 +51,12 @@
       @for (video of videos; track video.id) {
         <div class="video-card">
           <div class="thumbnail-container">
-            <img [src]="getThumbnail(video)" [alt]="video.title" class="thumbnail" />
+            <img
+              [src]="getThumbnail(video)"
+              [alt]="video.title"
+              class="thumbnail clickable"
+              (click)="watchVideo(video)"
+            />
 
             <span class="duration">
               {{ formatDuration(video.duration) }}
@@ -74,6 +86,8 @@
               <span>
                 {{ formatFileSize(video.fileSize) }}
               </span>
+            </div>
+            <div class="action-btns">
               <div class="status-row">
                 <span
                   class="status"
@@ -85,9 +99,8 @@
                   {{ video.status }}
                 </span>
               </div>
+              <button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
             </div>
-
-            <button class="watch-button" [routerLink]="['/video', video.id]">Watch</button>
           </div>
         </div>
       }

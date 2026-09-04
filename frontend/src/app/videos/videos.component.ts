@@ -1,16 +1,17 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 
 import { ApiService } from '../services/api.service';
 import { Video } from '../models/video.model';
+import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-videos',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './videos.component.html',
   styleUrl: './videos.component.css',
 })
@@ -21,26 +22,30 @@ export class VideosComponent implements OnInit {
   error = '';
 
   user: any;
+  searchTerm = '';
 
   constructor(
     private authService: AuthService,
     private api: ApiService,
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private route: ActivatedRoute,
   ) {
     this.user = this.authService.getUser();
-	console.log(this.user);
   }
 
   ngOnInit(): void {
-    this.loadVideos();
+    this.route.queryParams.subscribe((params) => {
+      this.searchTerm = params['search'] || '';
+      this.loadVideos();
+    });
   }
 
   loadVideos(): void {
     this.loading = true;
     this.error = '';
 
-    this.api.getVideos(1, 12).subscribe({
+    this.api.getVideos(1, 12, this.searchTerm).subscribe({
       next: (response) => {
         this.videos = response.videos;
         this.loading = false;
@@ -55,6 +60,24 @@ export class VideosComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  searchVideos(): void {
+    const search = this.searchTerm.trim();
+
+    this.router.navigate(['/videos'], {
+      queryParams: search ? { search } : {},
+    });
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+
+    this.router.navigate(['/videos']);
+  }
+
+  watchVideo(video: Video): void {
+    this.router.navigate(['/video', video.id]);
   }
 
   getThumbnail(video: Video): string {

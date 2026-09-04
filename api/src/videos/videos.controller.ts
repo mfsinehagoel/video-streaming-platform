@@ -42,16 +42,19 @@ export async function createVideo(req: Request, res: Response) {
 export async function getVideos(req: Request, res: Response) {
   try {
     const search =
-      typeof req.query.search === "string" ? req.query.search : undefined;
-
-    const status =
-      typeof req.query.status === "string" ? req.query.status : undefined;
+      typeof req.query.search === "string"
+        ? req.query.search
+        : undefined;
 
     const page =
-      typeof req.query.page === "string" ? Number(req.query.page) : 1;
+      typeof req.query.page === "string"
+        ? Number(req.query.page)
+        : 1;
 
     const limit =
-      typeof req.query.limit === "string" ? Number(req.query.limit) : 10;
+      typeof req.query.limit === "string"
+        ? Number(req.query.limit)
+        : 10;
 
     // Validate page
     if (!Number.isInteger(page) || page < 1) {
@@ -69,16 +72,16 @@ export async function getVideos(req: Request, res: Response) {
       });
     }
 
-    // Create a unique cache key for this query
+    // Create cache key
     const cacheKey = [
       "videos:list",
       `search=${search ?? ""}`,
-      `status=${status ?? ""}`,
+      "status=NOT_COMPLETED",
       `page=${page}`,
       `limit=${limit}`,
     ].join(":");
 
-    // 1. Check Redis first
+    // Check Redis
     const cachedVideos = await redisClient.get(cacheKey);
 
     if (cachedVideos) {
@@ -93,18 +96,20 @@ export async function getVideos(req: Request, res: Response) {
 
     console.log(`Redis cache miss: ${cacheKey}`);
 
-    // 2. Fetch from MySQL
+    // Fetch videos
     const result = await videosService.getVideos({
       ...(search !== undefined && { search }),
-      ...(status !== undefined && { status }),
       page,
       limit,
     });
 
-    // 3. Cache the result for 60 seconds
-    await redisClient.setEx(cacheKey, 60, JSON.stringify(result));
+    // Cache for 60 seconds
+    await redisClient.setEx(
+      cacheKey,
+      60,
+      JSON.stringify(result)
+    );
 
-    // 4. Return result
     return res.json({
       success: true,
       ...result,

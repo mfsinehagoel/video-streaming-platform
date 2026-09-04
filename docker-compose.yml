@@ -70,6 +70,7 @@ services:
     networks:
       - video-network
 
+  #15672 -> GUI console
   rabbitmq:
     image: rabbitmq:4-management
     container_name: video-rabbitmq
