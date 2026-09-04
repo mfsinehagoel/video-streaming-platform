@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { createVideo, downloadVideo, getVideoById, getVideos, streamVideo } from "./videos.controller";
+import {
+  createVideo,
+  getVideoById,
+  getVideos,
+  incrementVideoView,
+  streamVideo,
+} from "./videos.controller";
 
 import fs from "fs";
 import path from "path";
@@ -50,8 +56,8 @@ router.post("/upload", upload.single("video"), async (req, res) => {
 
       originalObjectKey: null,
     });
-	
-	await redisClient.del("videos:all");
+
+    await redisClient.del("videos:all");
 
     // 2. Generate object key
     const objectKey = `originals/${userId}/${video.id}/${req.file.originalname}`;
@@ -137,14 +143,13 @@ router.get("/:id/hls/*splat", streamHLS);
 router.get("/:id/thumbnail", getThumbnail);
 
 router.get("/:id/download", downloadOriginalVideo);
+router.post("/:id/view", incrementVideoView);
 
 router.get("/:id/status", getVideoStatus);
 
 router.get("/:id", getVideoById);
 
 router.get("/:id/stream", streamVideo);
-
-router.get("/:id/download", downloadVideo);
 
 router.delete("/:id", deleteVideo);
 

@@ -37,6 +37,9 @@ export class Video extends Model<
 
   declare hlsObjectKey: string | null;
 
+  declare views: number | null;
+  declare downloads: number | null;
+
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -131,6 +134,17 @@ Video.init(
       type: DataTypes.DATE,
       allowNull: false,
       field: "updated_at",
+    },
+    views: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+
+    downloads: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
   },
   {

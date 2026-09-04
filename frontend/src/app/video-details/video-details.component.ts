@@ -29,6 +29,8 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
   loading = true;
   error = '';
   deleting = false;
+
+  private viewCounted = false;
   private cdr = inject(ChangeDetectorRef);
   private hls: Hls | null = null;
 
@@ -87,6 +89,9 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
 
   initializeHLS(): void {
     const video = this.videoPlayer.nativeElement;
+    video.addEventListener('play', () => {
+      this.countView();
+    });
 
     const hlsUrl = this.hlsUrl;
 
@@ -157,6 +162,23 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
 
   get hlsUrl(): string {
     return `/api/videos/${this.videoId}/hls/master.m3u8`;
+  }
+
+  private countView(): void {
+    if (!this.videoId || this.viewCounted) {
+      return;
+    }
+
+    this.viewCounted = true;
+
+    this.http.post(`/api/videos/${this.videoId}/view`, {}).subscribe({
+      next: () => {},
+	  // TODO: remove console.logs and console.errors
+      error: () => {
+        // Allow retry if the API request failed
+        this.viewCounted = false;
+      },
+    });
   }
 
   deleteVideo(): void {

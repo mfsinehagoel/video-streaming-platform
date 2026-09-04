@@ -29,6 +29,14 @@ export async function downloadOriginalVideo(req: Request, res: Response) {
       });
     }
 
+    // Increment download count
+    await Video.increment("downloads", {
+      where: {
+        id: videoId,
+      },
+    });
+
+    console.log(`Download count incremented for video: ${videoId}`);
     console.log(`Downloading original video: ${video.originalObjectKey}`);
 
     const object = await minioClient.getObject(

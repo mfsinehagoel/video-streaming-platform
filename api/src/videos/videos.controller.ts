@@ -42,19 +42,13 @@ export async function createVideo(req: Request, res: Response) {
 export async function getVideos(req: Request, res: Response) {
   try {
     const search =
-      typeof req.query.search === "string"
-        ? req.query.search
-        : undefined;
+      typeof req.query.search === "string" ? req.query.search : undefined;
 
     const page =
-      typeof req.query.page === "string"
-        ? Number(req.query.page)
-        : 1;
+      typeof req.query.page === "string" ? Number(req.query.page) : 1;
 
     const limit =
-      typeof req.query.limit === "string"
-        ? Number(req.query.limit)
-        : 10;
+      typeof req.query.limit === "string" ? Number(req.query.limit) : 10;
 
     // Validate page
     if (!Number.isInteger(page) || page < 1) {
@@ -104,11 +98,7 @@ export async function getVideos(req: Request, res: Response) {
     });
 
     // Cache for 60 seconds
-    await redisClient.setEx(
-      cacheKey,
-      60,
-      JSON.stringify(result)
-    );
+    await redisClient.setEx(cacheKey, 60, JSON.stringify(result));
 
     return res.json({
       success: true,
@@ -237,6 +227,11 @@ export const streamVideo = async (req: Request, res: Response) => {
     // No Range header
 
     if (!range) {
+      await Video.increment("views", {
+        where: {
+          id: videoId,
+        },
+      });
       const stream = await minioClient.getObject(MINIO_BUCKET, objectKey);
 
       res.status(200);
@@ -306,8 +301,6 @@ export const streamVideo = async (req: Request, res: Response) => {
 
     stream.pipe(res);
   } catch (error) {
-    console.error("Video streaming error:", error);
-
     if (!res.headersSent) {
       return res.status(500).json({
         success: false,
@@ -317,18 +310,9 @@ export const streamVideo = async (req: Request, res: Response) => {
   }
 };
 
-export const downloadVideo = async (req: Request, res: Response) => {
+export async function incrementVideoView(req: Request, res: Response) {
   try {
-    const idParam = req.params.id;
-
-    if (!idParam) {
-      return res.status(400).json({
-        success: false,
-        message: "Video ID is required",
-      });
-    }
-
-    const videoId = Number(idParam);
+    const videoId = Number(req.params.id);
 
     if (!Number.isInteger(videoId)) {
       return res.status(400).json({
@@ -337,7 +321,6 @@ export const downloadVideo = async (req: Request, res: Response) => {
       });
     }
 
-    // Find video
     const video = await Video.findByPk(videoId);
 
     if (!video) {
@@ -347,41 +330,20 @@ export const downloadVideo = async (req: Request, res: Response) => {
       });
     }
 
-    // Check original file exists
-    if (!video.originalObjectKey) {
-      return res.status(404).json({
-        success: false,
-        message: "Original video file not available",
-      });
-    }
+    await Video.increment("views", {
+      where: {
+        id: videoId,
+      },
+    });
 
-    // Get original file from MinIO
-    const stream = await minioClient.getObject(
-      MINIO_BUCKET,
-      video.originalObjectKey,
-    );
-
-    // Force browser download
-    res.setHeader("Content-Type", "application/octet-stream");
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${video.originalFilename}"`,
-    );
-
-    if (video.fileSize) {
-      res.setHeader("Content-Length", video.fileSize);
-    }
-
-    stream.pipe(res);
+    return res.status(200).json({
+      success: true,
+      message: "View counted",
+    });
   } catch (error) {
-    console.error("Video download error:", error);
-
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to download video",
-      });
-    }
+    return res.status(500).json({
+      success: false,
+      message: "Failed to increment view count",
+    });
   }
-};
+}

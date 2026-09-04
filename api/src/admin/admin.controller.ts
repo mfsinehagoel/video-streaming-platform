@@ -20,6 +20,9 @@ export async function getDashboard(req: Request, res: Response) {
 
       totalStorage,
       completedJobs,
+
+      totalViews,
+      totalDownloads,
     ] = await Promise.all([
       // Videos
       Video.count(),
@@ -86,6 +89,10 @@ export async function getDashboard(req: Request, res: Response) {
 
         order: [["completedAt", "DESC"]],
       }),
+
+      // Statistics
+      Video.sum("views"),
+      Video.sum("downloads"),
     ]);
 
     // Average processing time
@@ -134,8 +141,8 @@ export async function getDashboard(req: Request, res: Response) {
         averageProcessingTime,
 
         statistics: {
-          views: 0,
-          downloads: 0,
+          views: totalViews || 0,
+          downloads: totalDownloads || 0,
         },
       },
     });
@@ -262,9 +269,9 @@ export async function getAdminVideos(req: Request, res: Response) {
 
         createdAt: video.createdAt,
 
-        views: 0,
+        views: video.views ?? 0,
 
-        downloads: 0,
+        downloads: video.downloads ?? 0,
 
         processingJob: processingJob
           ? {
