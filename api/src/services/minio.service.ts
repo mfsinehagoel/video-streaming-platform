@@ -106,8 +106,6 @@ export async function uploadDirectoryToMinIO(
 
     const fileStats = await stat(file);
 
-    console.log(`Uploading HLS file: ${objectKey}`);
-
     await minioClient.send(
       new PutObjectCommand({
         Bucket: bucket,

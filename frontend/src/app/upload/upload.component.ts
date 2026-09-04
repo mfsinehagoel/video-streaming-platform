@@ -61,10 +61,7 @@ export class UploadComponent {
 
     this.apiService.uploadVideo(this.selectedFile, this.title.trim()).subscribe({
       next: (response) => {
-        console.log('Upload response:', response);
-
         this.uploading = false;
-
         this.successMessage = 'Video uploaded successfully and processing has started.';
 
         this.selectedFile = null;
@@ -76,10 +73,7 @@ export class UploadComponent {
       },
 
       error: (error) => {
-        console.error('Upload failed:', error);
-
         this.uploading = false;
-
         this.errorMessage = error?.error?.message || 'Video upload failed. Please try again.';
       },
     });

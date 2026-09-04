@@ -43,9 +43,7 @@ export function generateHLS(
 
     const ffmpeg = spawn("ffmpeg", args);
 
-    ffmpeg.stderr.on("data", (data) => {
-      console.log(`FFmpeg: ${data}`);
-    });
+    ffmpeg.stderr.on("data", () => {});
 
     ffmpeg.on("close", (code) => {
       if (code === 0) {

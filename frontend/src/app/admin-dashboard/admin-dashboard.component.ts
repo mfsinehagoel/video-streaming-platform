@@ -126,8 +126,6 @@ export class AdminDashboardComponent implements OnInit {
 
     this.http.get<DashboardStats>('/api/admin/dashboard').subscribe({
       next: (response: any) => {
-        console.log('Admin dashboard:', response);
-
         this.stats = response.data;
 
         this.loading = false;
@@ -135,13 +133,9 @@ export class AdminDashboardComponent implements OnInit {
         this.cdr.detectChanges();
       },
 
-      error: (error) => {
-        console.error('Failed to load admin dashboard:', error);
-
+      error: () => {
         this.error = 'Failed to load dashboard statistics.';
-
         this.loading = false;
-
         this.cdr.detectChanges();
       },
     });
@@ -183,8 +177,6 @@ export class AdminDashboardComponent implements OnInit {
       })
       .subscribe({
         next: (response: any) => {
-          console.log('Admin videos:', response);
-
           this.videos = response.data;
 
           this.loadingVideos = false;
@@ -193,8 +185,6 @@ export class AdminDashboardComponent implements OnInit {
         },
 
         error: (error) => {
-          console.error('Failed to load admin videos:', error);
-
           this.videos = [];
 
           this.loadingVideos = false;
@@ -238,9 +228,7 @@ export class AdminDashboardComponent implements OnInit {
     this.retryingJobId = jobId;
 
     this.http.post(`/api/admin/jobs/${jobId}/retry`, {}).subscribe({
-      next: (response) => {
-        console.log('Processing job retry requested:', response);
-
+      next: () => {
         video.status = 'QUEUED';
 
         this.retryingJobId = null;
@@ -249,9 +237,7 @@ export class AdminDashboardComponent implements OnInit {
         this.loadVideos();
       },
 
-      error: (error) => {
-        console.error('Failed to retry processing job:', error);
-
+      error: () => {
         alert('Failed to retry processing job. Please try again.');
 
         this.retryingJobId = null;

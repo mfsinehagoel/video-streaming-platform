@@ -62,8 +62,6 @@ router.post("/upload", upload.single("video"), async (req, res) => {
     // 2. Generate object key
     const objectKey = `originals/${userId}/${video.id}/${req.file.originalname}`;
 
-    console.log(`Uploading ${req.file.originalname} to MinIO...`);
-
     // 3. Upload actual file to MinIO
     await minioClient.fPutObject(MINIO_BUCKET, objectKey, req.file.path, {
       "Content-Type": req.file.mimetype,
@@ -99,12 +97,8 @@ router.post("/upload", upload.single("video"), async (req, res) => {
       },
     );
 
-    console.log(`Processing job queued for video ${video.id}`);
-
     // 6. Delete temporary file
     fs.unlinkSync(req.file.path);
-
-    console.log(`Video ${video.id} uploaded successfully`);
 
     return res.status(201).json({
       success: true,
@@ -120,8 +114,6 @@ router.post("/upload", upload.single("video"), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Video upload failed:", error);
-
     // Clean up temporary file
     if (req.file?.path) {
       try {

@@ -30,8 +30,6 @@ export async function createVideo(req: Request, res: Response) {
       video,
     });
   } catch (error) {
-    console.error("Create video error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to create video",
@@ -79,16 +77,12 @@ export async function getVideos(req: Request, res: Response) {
     const cachedVideos = await redisClient.get(cacheKey);
 
     if (cachedVideos) {
-      console.log(`Redis cache hit: ${cacheKey}`);
-
       return res.json({
         success: true,
         ...JSON.parse(cachedVideos),
         cached: true,
       });
     }
-
-    console.log(`Redis cache miss: ${cacheKey}`);
 
     // Fetch videos
     const result = await videosService.getVideos({
@@ -106,8 +100,6 @@ export async function getVideos(req: Request, res: Response) {
       cached: false,
     });
   } catch (error) {
-    console.error("Get videos error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch videos",
@@ -132,16 +124,12 @@ export async function getVideoById(req: Request, res: Response) {
     const cachedVideo = await redisClient.get(cacheKey);
 
     if (cachedVideo) {
-      console.log(`Redis cache hit: ${cacheKey}`);
-
       return res.json({
         success: true,
         video: JSON.parse(cachedVideo),
         cached: true,
       });
     }
-
-    console.log(`Redis cache miss: ${cacheKey}`);
 
     // 2. If not cached, fetch from MySQL
     const video = await videosService.getVideoById(id);
@@ -163,8 +151,6 @@ export async function getVideoById(req: Request, res: Response) {
       cached: false,
     });
   } catch (error) {
-    console.error("Get video error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch video",
@@ -248,7 +234,6 @@ export const streamVideo = async (req: Request, res: Response) => {
     }
 
     // Range request
-
     const rangeValue = range.replace(/bytes=/, "");
 
     const [startString, endString] = rangeValue.split("-");

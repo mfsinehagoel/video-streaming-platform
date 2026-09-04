@@ -147,8 +147,6 @@ export async function getDashboard(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Failed to load admin dashboard:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to load admin dashboard",
@@ -298,8 +296,6 @@ export async function getAdminVideos(req: Request, res: Response) {
       data,
     });
   } catch (error) {
-    console.error("Failed to load admin videos:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to load admin videos",
@@ -331,8 +327,6 @@ export async function getAdminJobs(req: Request, res: Response) {
       data: jobs,
     });
   } catch (error) {
-    console.error("Failed to load admin jobs:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to load admin jobs",
@@ -414,8 +408,6 @@ export async function retryJob(req: Request, res: Response) {
       },
     );
 
-    console.log(`Admin manually retried job ${job.id}`);
-
     return res.json({
       success: true,
 
@@ -430,8 +422,6 @@ export async function retryJob(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Failed to retry processing job:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to retry processing job",

@@ -29,8 +29,6 @@ export async function getThumbnail(req: Request, res: Response) {
       });
     }
 
-    console.log(`Streaming thumbnail: ${video.thumbnailObjectKey}`);
-
     const object = await minioClient.getObject(
       MINIO_BUCKET,
       video.thumbnailObjectKey,
@@ -42,8 +40,6 @@ export async function getThumbnail(req: Request, res: Response) {
 
     object.pipe(res);
   } catch (error) {
-    console.error("Thumbnail streaming error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve thumbnail",

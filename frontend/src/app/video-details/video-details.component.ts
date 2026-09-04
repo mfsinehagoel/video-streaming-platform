@@ -63,8 +63,6 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
   loadVideo(): void {
     this.http.get<any>(`/api/videos/${this.videoId}`).subscribe({
       next: (response) => {
-        console.log('Video details:', response);
-
         this.video = response.video;
 
         this.loading = false;
@@ -78,8 +76,6 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
       },
 
       error: (error) => {
-        console.error('Failed to load video:', error);
-
         this.error = 'Failed to load video';
         this.loading = false;
         this.cdr.detectChanges();
@@ -103,8 +99,6 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
       this.hls.attachMedia(video);
 
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest loaded successfully');
-
         this.qualityLevels = this.hls!.levels.map((level, index) => ({
           index,
           height: level.height,
@@ -112,22 +106,16 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
         }))
           .filter((level) => level.height > 0)
           .sort((a, b) => b.height - a.height);
-
-        console.log('Available quality levels:', this.qualityLevels);
         this.cdr.detectChanges();
       });
 
-      this.hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS error:', data);
-      });
+      this.hls.on(Hls.Events.ERROR, () => {});
 
       return;
     }
 
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = hlsUrl;
-
-      console.log('Using native HLS support');
     }
   }
 
@@ -139,13 +127,6 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
     this.selectedQuality = levelIndex;
 
     this.hls.currentLevel = levelIndex;
-
-    console.log(
-      'Selected quality:',
-      levelIndex === -1
-        ? 'Auto'
-        : `${this.qualityLevels.find((level) => level.index === levelIndex)?.height}p`,
-    );
   }
 
   get videoUrl(): string {
@@ -172,10 +153,7 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
     this.viewCounted = true;
 
     this.http.post(`/api/videos/${this.videoId}/view`, {}).subscribe({
-      next: () => {},
-	  // TODO: remove console.logs and console.errors
       error: () => {
-        // Allow retry if the API request failed
         this.viewCounted = false;
       },
     });
@@ -196,16 +174,11 @@ export class VideoDetailsComponent implements OnInit, OnDestroy {
 
     this.http.delete<any>(`/api/videos/${this.videoId}`).subscribe({
       next: (response) => {
-        console.log('Video deleted:', response);
-
         this.router.navigate(['/videos']);
       },
 
-      error: (error) => {
-        console.error('Failed to delete video:', error);
-
+      error: () => {
         this.deleting = false;
-
         alert('Failed to delete video. Please try again.');
       },
     });

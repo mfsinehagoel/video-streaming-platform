@@ -77,8 +77,6 @@ export const deleteVideo = async (req: Request, res: Response) => {
       message: "Video deleted successfully",
     });
   } catch (error) {
-    console.error("Delete video error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to delete video",

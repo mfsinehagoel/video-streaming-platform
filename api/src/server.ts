@@ -15,25 +15,16 @@ async function startServer() {
   try {
     await sequelize.authenticate();
 
-    console.log("MySQL connected successfully");
-
     await sequelize.sync();
 
-    console.log("Database synchronized successfully");
-
 	await initializeRedis();
-
-    console.log("Redis initialized successfully");
 
 	await initializeRabbitMQ();
 
 	await initializeMinIO();
 
-    app.listen(Number(PORT), "0.0.0.0", () => {
-      console.log(`API running on http://localhost:${PORT}`);
-    });
+    app.listen(Number(PORT), "0.0.0.0");
   } catch (error) {
-    console.error("MySQL connection failed:", error);
     process.exit(1);
   }
 }

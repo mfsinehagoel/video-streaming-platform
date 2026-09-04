@@ -47,8 +47,6 @@ export async function getVideoStatus(req: Request, res: Response) {
         : null,
     });
   } catch (error) {
-    console.error("Get video status error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch video status",

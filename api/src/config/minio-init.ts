@@ -5,9 +5,5 @@ export async function initializeMinIO() {
 
   if (!exists) {
     await minioClient.makeBucket(MINIO_BUCKET);
-
-    console.log(`MinIO bucket "${MINIO_BUCKET}" created`);
-  } else {
-    console.log(`MinIO bucket "${MINIO_BUCKET}" already exists`);
-  }
+  } else {}
 }

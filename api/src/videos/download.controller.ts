@@ -36,9 +36,6 @@ export async function downloadOriginalVideo(req: Request, res: Response) {
       },
     });
 
-    console.log(`Download count incremented for video: ${videoId}`);
-    console.log(`Downloading original video: ${video.originalObjectKey}`);
-
     const object = await minioClient.getObject(
       MINIO_BUCKET,
       video.originalObjectKey,
@@ -62,8 +59,6 @@ export async function downloadOriginalVideo(req: Request, res: Response) {
 
     object.pipe(res);
   } catch (error) {
-    console.error("Original video download error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to download video",

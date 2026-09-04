@@ -39,10 +39,7 @@ export async function streamHLS(req: Request, res: Response) {
         success: false,
         message: "HLS file path is required",
       });
-    }
-
-    console.log("HLS video ID:", videoId);
-    console.log("HLS requested path:", requestedPath);
+    };
 
     // Example:
     // video.hlsObjectKey = hls/1/18/master.m3u8
@@ -54,8 +51,6 @@ export async function streamHLS(req: Request, res: Response) {
     const hlsPrefix = video.hlsObjectKey.replace("/master.m3u8", "");
 
     const objectKey = `${hlsPrefix}/${requestedPath}`;
-
-    console.log(`Streaming HLS file: ${objectKey}`);
 
     const object = await minioClient.getObject(MINIO_BUCKET, objectKey);
 
@@ -78,8 +73,6 @@ export async function streamHLS(req: Request, res: Response) {
 
     object.pipe(res);
   } catch (error) {
-    console.error("HLS streaming error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to stream video",

@@ -19,9 +19,6 @@ app.use("/api/admin", adminRoutes);
 
 sequelize
   .authenticate()
-  .then(() => {
-    console.log("MySQL connected successfully");
-  })
   .catch((error) => {
     console.error("MySQL connection failed:", error);
   });

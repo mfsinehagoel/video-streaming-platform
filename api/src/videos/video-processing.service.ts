@@ -11,6 +11,4 @@ export async function enqueueVideoProcessing(jobId: number, videoId: number) {
   channel.sendToQueue(PROCESSING_QUEUE, Buffer.from(JSON.stringify(message)), {
     persistent: true,
   });
-
-  console.log(`Video processing job ${jobId} queued for video ${videoId}`);
 }

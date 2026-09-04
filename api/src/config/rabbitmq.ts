@@ -37,8 +37,6 @@ export async function initializeRabbitMQ(): Promise<void> {
 
   connection = conn;
   channel = ch;
-
-  console.log("RabbitMQ connected successfully");
 }
 
 export function getRabbitMQChannel(): Channel {

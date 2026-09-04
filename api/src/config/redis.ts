@@ -10,13 +10,9 @@ redisClient.on("error", (error) => {
   console.error("Redis Client Error:", error);
 });
 
-redisClient.on("connect", () => {
-  console.log("Redis connecting...");
-});
+redisClient.on("connect", () => {});
 
-redisClient.on("ready", () => {
-  console.log("Redis connected successfully");
-});
+redisClient.on("ready", () => {});
 
 export async function initializeRedis() {
   if (!redisClient.isOpen) {
@@ -29,6 +25,5 @@ export async function invalidateVideoListCache() {
 
   if (keys.length > 0) {
     await redisClient.del(keys);
-    console.log(`Invalidated ${keys.length} video list cache(s)`);
   }
 }
