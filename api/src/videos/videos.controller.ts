@@ -1,9 +1,14 @@
 import { Request, Response } from "express";
 import { VideosService } from "./videos.service";
 
-import { Video, VideoVariant } from "../models";
+import { Video, VideoVariant, ProcessingJob } from "../models";
+
+import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
+import fs from "fs";
+import path from "path";
+
 import { minioClient, MINIO_BUCKET } from "../config/minio";
-import { redisClient } from "../config/redis";
+import { invalidateVideoListCache, redisClient } from "../config/redis";
 
 const videosService = new VideosService();
 
@@ -33,6 +38,108 @@ export async function createVideo(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: "Failed to create video",
+    });
+  }
+}
+
+export async function uploadVideo(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No video file uploaded",
+      });
+    }
+
+    const userId = Number(req.body.userId || 1);
+    const title = req.body.title || path.parse(req.file.originalname).name;
+
+    // 1. Create database record
+    const video = await Video.create({
+      userId,
+      title,
+      originalFilename: req.file.originalname,
+      fileSize: req.file.size,
+
+      duration: null,
+      width: null,
+      height: null,
+      codec: null,
+
+      status: "UPLOADING",
+
+      originalObjectKey: null,
+    });
+
+    // 2. Generate MinIO object key
+    const objectKey = `originals/${userId}/${video.id}/${req.file.originalname}`;
+
+    // 3. Upload file to MinIO
+    await minioClient.fPutObject(MINIO_BUCKET, objectKey, req.file.path, {
+      "Content-Type": req.file.mimetype,
+    });
+
+    // 4. Update video after successful MinIO upload
+    await video.update({
+      originalObjectKey: objectKey,
+      status: "QUEUED",
+    });
+
+    // 5. Create processing job
+    const processingJob = await ProcessingJob.create({
+      videoId: video.id,
+      status: "QUEUED",
+      attempts: 0,
+    });
+
+    // 6. Publish job to RabbitMQ
+    const channel = getRabbitMQChannel();
+
+    channel.sendToQueue(
+      PROCESSING_QUEUE,
+      Buffer.from(
+        JSON.stringify({
+          jobId: processingJob.id,
+          videoId: video.id,
+          userId,
+          objectKey,
+        }),
+      ),
+      {
+        persistent: true,
+      },
+    );
+
+    // Invalidate video list cache
+    await invalidateVideoListCache();
+
+    // 7. Delete temporary uploaded file
+    fs.unlinkSync(req.file.path);
+
+    return res.status(201).json({
+      success: true,
+      message: "Video uploaded successfully",
+
+      video: {
+        id: video.id,
+        title: video.title,
+        originalFilename: video.originalFilename,
+        fileSize: video.fileSize,
+        status: video.status,
+        originalObjectKey: video.originalObjectKey,
+      },
+    });
+  } catch (error) {
+    // Clean up temporary file if upload failed
+    if (req.file?.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch {}
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Video upload failed",
     });
   }
 }
