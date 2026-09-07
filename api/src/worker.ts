@@ -38,7 +38,7 @@ async function startWorker() {
     // 3. Caching through Redis
     await initializeRedis();
 
-    // 3. Connect to RabbitMQ
+    // 4. Connect to RabbitMQ
     await initializeRabbitMQ();
 
     const channel = getRabbitMQChannel();

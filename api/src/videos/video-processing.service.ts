@@ -1,6 +1,6 @@
 import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
 
-export async function enqueueVideoProcessing(jobId: number, videoId: number) {
+export function enqueueVideoProcessing(jobId: number, videoId: number) {
   const channel = getRabbitMQChannel();
 
   const message = {
