@@ -157,8 +157,6 @@ To stop the services and remove associated volumes:
 docker compose down -v
 ```
 
-> **Warning:** `docker compose down -v` removes Docker volumes, which can delete persisted database and storage data depending on the volume configuration.
-
 ## Application Flow
 
 1. A user uploads a video through the Angular frontend.
