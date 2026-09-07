@@ -157,32 +157,20 @@ To stop the services and remove associated volumes:
 docker compose down -v
 ```
 
-## Service Ports
-
-The following ports are used by the application:
-
-| Service             |    Port | Description                      |
-| ------------------- | ------: | -------------------------------- |
-| Frontend / Nginx    |  `8081` | Access the web application       |
-| Backend API         |  `8080` | Express REST API                 |
-| MySQL               |  `3306` | Application database             |
-| MinIO API           |  `9000` | S3-compatible object storage API |
-| MinIO Console       |  `9001` | MinIO web management console     |
-| RabbitMQ            |  `5672` | AMQP message broker              |
-| RabbitMQ Management | `15672` | RabbitMQ management dashboard    |
-| Redis               |  `6379` | Application cache                |
-
 ### Accessing Services
 
+Nginx acts as the reverse proxy, so both the frontend and API can be accessed through the same host port (8081).
+
+The backend API also exposes port 8080 directly, but frontend API requests are routed through Nginx using the /api/ path.
+
 * **Frontend:** `http://localhost:8081`
-* **Backend API:** `http://localhost:8080`
+* **Backend API:** `http://localhost:8081`
 * **MySQL:** `localhost:3306`
 * **MinIO API:** `http://localhost:9000`
 * **MinIO Console:** `http://localhost:9001`
 * **RabbitMQ:** `localhost:5672`
 * **RabbitMQ Management:** `http://localhost:15672`
 * **Redis:** `localhost:6379`
-
 
 ## Application Flow
 
