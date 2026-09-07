@@ -4,30 +4,30 @@
 
 # Tech Stack
 1. Frontend
-Angular
-TypeScript
-HTML
-CSS
-HLS.js
+- Angular
+- TypeScript
+- HTML
+- CSS
+- HLS.js
 2. Backend
-Node.js
-Express
-TypeScript
-Sequelize ORM
+- Node.js
+- Express
+- TypeScript
+- Sequelize ORM
 3. Database
-MySQL
+- MySQL
 4. Storage
-MinIO
-S3-compatible object storage
+- MinIO
+- S3-compatible object storage
 5. Message Queue
-RabbitMQ
+- RabbitMQ
 6. Caching
-Redis
+- Redis
 7. Video Processing
-FFmpeg
-FFprobe
+- FFmpeg
+- FFprobe
 8. Reverse Proxy
-Nginx
+- Nginx
 9. Containerization
-Docker
-Docker Compose
+- Docker
+- Docker Compose
