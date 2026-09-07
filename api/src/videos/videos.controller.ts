@@ -12,6 +12,7 @@ import { invalidateVideoListCache, redisClient } from "../config/redis";
 
 const videosService = new VideosService();
 
+// Create a video in database record
 export async function createVideo(req: Request, res: Response) {
   try {
     const { userId, title, originalFilename, fileSize } = req.body;
@@ -24,10 +25,10 @@ export async function createVideo(req: Request, res: Response) {
     }
 
     const video = await videosService.createVideo({
-      userId,
+      userId: Number(userId),
       title,
       originalFilename,
-      fileSize,
+      fileSize: Number(fileSize),
     });
 
     return res.status(201).json({
@@ -42,6 +43,8 @@ export async function createVideo(req: Request, res: Response) {
   }
 }
 
+// Upload a video, store it in MinIO
+// then, create a processing job, and publish it to RabbitMQ
 export async function uploadVideo(req: Request, res: Response) {
   try {
     if (!req.file) {
@@ -144,6 +147,7 @@ export async function uploadVideo(req: Request, res: Response) {
   }
 }
 
+// Get paginated completed videos
 export async function getVideos(req: Request, res: Response) {
   try {
     const search =
@@ -175,12 +179,12 @@ export async function getVideos(req: Request, res: Response) {
     const cacheKey = [
       "videos:list",
       `search=${search ?? ""}`,
-      "status=NOT_COMPLETED",
+      "status=COMPLETED",
       `page=${page}`,
       `limit=${limit}`,
     ].join(":");
 
-    // Check Redis
+    // Check Redis cache
     const cachedVideos = await redisClient.get(cacheKey);
 
     if (cachedVideos) {
@@ -191,14 +195,14 @@ export async function getVideos(req: Request, res: Response) {
       });
     }
 
-    // Fetch videos
+    // Fetch videos from db
     const result = await videosService.getVideos({
       ...(search !== undefined && { search }),
       page,
       limit,
     });
 
-    // Cache for 60 seconds
+    // Cache result for 60 seconds
     await redisClient.setEx(cacheKey, 60, JSON.stringify(result));
 
     return res.json({

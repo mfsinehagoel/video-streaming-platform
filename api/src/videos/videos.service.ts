@@ -31,7 +31,6 @@ export class VideosService {
 
   async getVideos(options?: {
   search?: string;
-  status?: string;
   page?: number;
   limit?: number;
 }) {
