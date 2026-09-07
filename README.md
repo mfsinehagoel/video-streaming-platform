@@ -30,3 +30,37 @@
 9. Containerization
 - Docker
 - Docker Compose
+
+# How to Start the Application
+
+Clone the repository:
+
+git clone <your-repository-url>
+cd video-streaming-platform
+
+Start all services:
+
+docker compose up --build
+
+Run in detached mode:
+
+docker compose up --build -d
+
+#Check Running Containers
+
+docker compose ps
+
+You can also use:
+
+docker ps
+
+Expected services include:
+
+frontend
+api
+worker
+nginx
+mysql
+redis
+rabbitmq
+minio
