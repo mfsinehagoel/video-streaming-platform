@@ -2,32 +2,32 @@
 
 <img width="872" height="651" alt="image (1)" src="https://github.com/user-attachments/assets/76c2d782-70b6-4e30-905e-408a25422e13" />
 
-Tech Stack
-Frontend
+# Tech Stack
+1. Frontend
 Angular
 TypeScript
 HTML
 CSS
 HLS.js
-Backend
+2. Backend
 Node.js
 Express
 TypeScript
 Sequelize ORM
-Database
+3. Database
 MySQL
-Storage
+4. Storage
 MinIO
 S3-compatible object storage
-Message Queue
+5. Message Queue
 RabbitMQ
-Caching
+6. Caching
 Redis
-Video Processing
+7. Video Processing
 FFmpeg
 FFprobe
-Reverse Proxy
+8. Reverse Proxy
 Nginx
-Containerization
+9. Containerization
 Docker
 Docker Compose
