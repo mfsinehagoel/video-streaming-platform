@@ -80,7 +80,7 @@ Make sure the following are installed:
 ### Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone video-streaming-platform
 cd video-streaming-platform
 ```
 
