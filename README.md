@@ -8,14 +8,13 @@
 - TypeScript
 - HTML
 - CSS
-- HLS.js
 2. Backend
 - Node.js
 - Express
 - TypeScript
-- Sequelize ORM
 3. Database
 - MySQL
+- Sequelize ORM
 4. Storage
 - MinIO
 - S3-compatible object storage
