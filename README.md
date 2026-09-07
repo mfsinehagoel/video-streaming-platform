@@ -159,9 +159,9 @@ docker compose down -v
 
 ### Accessing Services
 
-Nginx acts as the reverse proxy, so both the frontend and API can be accessed through the same host port (8081).
+Nginx acts as the reverse proxy, so both the frontend and API can be accessed through the same host port (`8081`).
 
-The backend API also exposes port 8080 directly, but frontend API requests are routed through Nginx using the /api/ path.
+The backend API also exposes port `8080` directly, but frontend API requests are routed through Nginx using the `/api/` path.
 
 * **Frontend:** `http://localhost:8081`
 * **Backend API:** `http://localhost:8081`
