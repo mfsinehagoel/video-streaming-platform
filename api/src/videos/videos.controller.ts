@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
 import { VideosService } from "./videos.service";
 
-import { Video, VideoVariant, ProcessingJob } from "../models";
+import { Video, VideoVariant, ProcessingJob } from "@video-platform/shared";
 
-import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
+import { getRabbitMQChannel, PROCESSING_QUEUE } from "@video-platform/shared";
 import fs from "fs";
 import path from "path";
 
 import { minioClient, MINIO_BUCKET } from "../config/minio";
-import { invalidateVideoListCache, redisClient } from "../config/redis";
+import { invalidateVideoListCache, redisClient } from "@video-platform/shared";
+import { AppError } from "../errors/AppError";
 
 const videosService = new VideosService();
 
@@ -18,10 +19,7 @@ export async function createVideo(req: Request, res: Response) {
     const { userId, title, originalFilename, fileSize } = req.body;
 
     if (!userId || !title || !originalFilename || !fileSize) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      });
+      throw new AppError("Missing required fields", 400);
     }
 
     const video = await videosService.createVideo({
@@ -36,10 +34,7 @@ export async function createVideo(req: Request, res: Response) {
       video,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create video",
-    });
+    throw new AppError("Failed to create video", 500);
   }
 }
 
@@ -48,10 +43,7 @@ export async function createVideo(req: Request, res: Response) {
 export async function uploadVideo(req: Request, res: Response) {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No video file uploaded",
-      });
+      throw new AppError("No video file uploaded", 400);
     }
 
     const userId = Number(req.body.userId || 1);
@@ -140,10 +132,7 @@ export async function uploadVideo(req: Request, res: Response) {
       } catch {}
     }
 
-    return res.status(500).json({
-      success: false,
-      message: "Video upload failed",
-    });
+    throw new AppError("Video upload failed", 500);
   }
 }
 
@@ -161,18 +150,12 @@ export async function getVideos(req: Request, res: Response) {
 
     // Validate page
     if (!Number.isInteger(page) || page < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Page must be a positive integer",
-      });
+      throw new AppError("Page must be a positive integer", 400);
     }
 
     // Validate limit
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Limit must be between 1 and 100",
-      });
+      throw new AppError("Limit must be between 1 and 100", 400);
     }
 
     // Create cache key
@@ -211,10 +194,7 @@ export async function getVideos(req: Request, res: Response) {
       cached: false,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch videos",
-    });
+	throw new AppError("Failed to fetch videos", 500);
   }
 }
 
@@ -223,10 +203,7 @@ export async function getVideoById(req: Request, res: Response) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     const cacheKey = `video:${id}`;
@@ -246,10 +223,7 @@ export async function getVideoById(req: Request, res: Response) {
     const video = await videosService.getVideoById(id);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     // 3. Store result in Redis for 5 minutes
@@ -262,10 +236,7 @@ export async function getVideoById(req: Request, res: Response) {
       cached: false,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch video",
-    });
+    throw new AppError("Failed to fetch video", 500);
   }
 }
 
@@ -274,20 +245,14 @@ export const streamVideo = async (req: Request, res: Response) => {
     const videoId = Number(req.params.id);
 
     if (!Number.isInteger(videoId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     // Find video
     const video = await Video.findByPk(videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     // Find 720p processed variant
@@ -299,10 +264,7 @@ export const streamVideo = async (req: Request, res: Response) => {
     });
 
     if (!variant) {
-      return res.status(404).json({
-        success: false,
-        message: "720p video variant not available yet",
-      });
+      throw new AppError("720p video variant not available yet", 404);
     }
 
     const objectKey = variant.objectKey;
@@ -313,10 +275,7 @@ export const streamVideo = async (req: Request, res: Response) => {
     const fileSize = Number(metadata.size);
 
     if (!fileSize) {
-      return res.status(404).json({
-        success: false,
-        message: "Video file is empty",
-      });
+      throw new AppError("Video file is empty", 404);
     }
 
     const range = req.headers.range;
@@ -350,10 +309,7 @@ export const streamVideo = async (req: Request, res: Response) => {
     const [startString, endString] = rangeValue.split("-");
 
     if (!startString) {
-      return res.status(416).json({
-        success: false,
-        message: "Invalid range",
-      });
+      throw new AppError("Invalid range", 416);
     }
 
     const start = parseInt(startString, 10);
@@ -398,10 +354,7 @@ export const streamVideo = async (req: Request, res: Response) => {
     stream.pipe(res);
   } catch (error) {
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to stream video",
-      });
+      throw new AppError("Failed to stream video", 500);
     }
   }
 };
@@ -411,19 +364,13 @@ export async function incrementVideoView(req: Request, res: Response) {
     const videoId = Number(req.params.id);
 
     if (!Number.isInteger(videoId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     const video = await Video.findByPk(videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     await Video.increment("views", {
@@ -437,9 +384,6 @@ export async function incrementVideoView(req: Request, res: Response) {
       message: "View counted",
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to increment view count",
-    });
+    throw new AppError("Failed to increment view count", 500);
   }
 }

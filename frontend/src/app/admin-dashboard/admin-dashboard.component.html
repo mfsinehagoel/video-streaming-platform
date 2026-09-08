@@ -13,15 +13,19 @@
 
   <!-- Error -->
 
-  <div *ngIf="error" class="error-message">
-    {{ error }}
-  </div>
+  @if (error) {
+    <div class="error-message">
+      {{ error }}
+    </div>
+  }
 
   <!-- Loading -->
 
-  <div *ngIf="loading" class="loading">Loading dashboard...</div>
+  @if (loading) {
+    <div class="loading">Loading dashboard...</div>
+  }
 
-  <ng-container *ngIf="!loading">
+  @if (!loading) {
     <!-- Statistics -->
 
     <section class="stats-grid">
@@ -113,7 +117,7 @@
         <h3>Performance</h3>
 
         <div class="info-row">
-          <span> Average Processing Time </span>
+          <span>Average Processing Time</span>
 
           <strong>
             {{ formatProcessingTime(stats.averageProcessingTime) }}
@@ -125,7 +129,7 @@
         <h3>Video Statistics</h3>
 
         <div class="info-row">
-          <span> Total Views </span>
+          <span>Total Views</span>
 
           <strong>
             {{ stats.statistics.views }}
@@ -133,7 +137,7 @@
         </div>
 
         <div class="info-row">
-          <span> Total Downloads </span>
+          <span>Total Downloads</span>
 
           <strong>
             {{ stats.statistics.downloads }}
@@ -161,13 +165,9 @@
 
           <select [(ngModel)]="filters.status">
             <option value="">All</option>
-
             <option value="QUEUED">Queued</option>
-
             <option value="PROCESSING">Processing</option>
-
             <option value="COMPLETED">Completed</option>
-
             <option value="FAILED">Failed</option>
           </select>
         </div>
@@ -177,11 +177,8 @@
 
           <select [(ngModel)]="filters.resolution">
             <option value="">All</option>
-
             <option value="1080p">1080p</option>
-
             <option value="720p">720p</option>
-
             <option value="480p">480p</option>
           </select>
         </div>
@@ -199,13 +196,13 @@
         </div>
 
         <div class="filter">
-          <label> Min Duration (seconds) </label>
+          <label>Min Duration (seconds)</label>
 
           <input type="number" min="0" [(ngModel)]="filters.minDuration" />
         </div>
 
         <div class="filter">
-          <label> Max Duration (seconds) </label>
+          <label>Max Duration (seconds)</label>
 
           <input type="number" min="0" [(ngModel)]="filters.maxDuration" />
         </div>
@@ -219,113 +216,118 @@
 
       <!-- Loading videos -->
 
-      <div *ngIf="loadingVideos" class="loading">Loading videos...</div>
+      @if (loadingVideos) {
+        <div class="loading">Loading videos...</div>
+      }
 
       <!-- Video table -->
 
-      <div *ngIf="!loadingVideos" class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
+      @if (!loadingVideos) {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Video</th>
+                <th>Status</th>
+                <th>Resolution</th>
+                <th>Duration</th>
+                <th>Size</th>
+                <th>Views</th>
+                <th>Downloads</th>
+                <th>Uploaded</th>
+                <th>Action</th>
+              </tr>
+            </thead>
 
-              <th>Video</th>
+            <tbody>
+              @for (video of videos; track video.id) {
+                <tr>
+                  <td>#{{ video.id }}</td>
 
-              <th>Status</th>
+                  <td>
+                    <div class="video-title">
+                      {{ video.title }}
+                    </div>
 
-              <th>Resolution</th>
+                    @if (video.originalFilename) {
+                      <div class="filename">
+                        {{ video.originalFilename }}
+                      </div>
+                    }
+                  </td>
 
-              <th>Duration</th>
+                  <td>
+                    <span
+                      class="status"
+                      [ngClass]="{
+                        'status-queued': video.status === 'QUEUED',
+                        'status-processing': video.status === 'PROCESSING',
+                        'status-completed': video.status === 'COMPLETED',
+                        'status-failed': video.status === 'FAILED',
+                      }"
+                    >
+                      {{ video.status }}
+                    </span>
+                  </td>
 
-              <th>Size</th>
+                  <td>
+                    {{ video.resolution || '-' }}
+                  </td>
 
-              <th>Views</th>
+                  <td>
+                    {{ formatDuration(video.duration) }}
+                  </td>
 
-              <th>Downloads</th>
+                  <td>
+                    {{ video.fileSize ? formatStorage(video.fileSize) : '-' }}
+                  </td>
 
-              <th>Uploaded</th>
+                  <td>
+                    {{ video.views ?? 0 }}
+                  </td>
 
-              <th>Action</th>
-            </tr>
-          </thead>
+                  <td>
+                    {{ video.downloads ?? 0 }}
+                  </td>
 
-          <tbody>
-            <tr *ngFor="let video of videos">
-              <td>#{{ video.id }}</td>
+                  <td>
+                    {{ formatDate(video.createdAt) }}
+                  </td>
 
-              <td>
-                <div class="video-title">
-                  {{ video.title }}
-                </div>
+                  <td>
+                    @if (video.status === 'FAILED') {
+                      <button
+                        class="retry-button"
+                        [disabled]="retryingJobId === video.processingJob?.id"
+                        (click)="retryJob(video)"
+                      >
+                        @if (retryingJobId !== video.processingJob?.id) {
+                          <span>Retry</span>
+                        }
 
-                <div *ngIf="video.originalFilename" class="filename">
-                  {{ video.originalFilename }}
-                </div>
-              </td>
+                        @if (retryingJobId === video.processingJob?.id) {
+                          <span>Retrying...</span>
+                        }
+                      </button>
+                    }
 
-              <td>
-                <span
-                  class="status"
-                  [ngClass]="{
-                    'status-queued': video.status === 'QUEUED',
+                    @if (video.status !== 'FAILED') {
+                      <span class="no-action">-</span>
+                    }
+                  </td>
+                </tr>
+              }
 
-                    'status-processing': video.status === 'PROCESSING',
-
-                    'status-completed': video.status === 'COMPLETED',
-
-                    'status-failed': video.status === 'FAILED',
-                  }"
-                >
-                  {{ video.status }}
-                </span>
-              </td>
-
-              <td>
-                {{ video.resolution || '-' }}
-              </td>
-
-              <td>
-                {{ formatDuration(video.duration) }}
-              </td>
-
-              <td>
-                {{ video.fileSize ? formatStorage(video.fileSize) : '-' }}
-              </td>
-
-              <td>
-                {{ video.views ?? 0 }}
-              </td>
-
-              <td>
-                {{ video.downloads ?? 0 }}
-              </td>
-
-              <td>
-                {{ formatDate(video.createdAt) }}
-              </td>
-
-              <td>
-                <button
-                  *ngIf="video.status === 'FAILED'"
-                  class="retry-button"
-                  [disabled]="retryingJobId === video.processingJob?.id"
-                  (click)="retryJob(video)"
-                >
-                  <span *ngIf="retryingJobId !== video.processingJob?.id"> Retry </span>
-
-                  <span *ngIf="retryingJobId === video.processingJob?.id"> Retrying... </span>
-                </button>
-
-                <span *ngIf="video.status !== 'FAILED'" class="no-action"> - </span>
-              </td>
-            </tr>
-
-            <tr *ngIf="videos.length === 0">
-              <td colspan="10" class="empty">No videos found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              @if (videos.length === 0) {
+                <tr>
+                  <td colspan="10" class="empty">No videos found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </section>
-  </ng-container>
+  }
 </div>

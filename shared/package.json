@@ -1,0 +1,26 @@
+{
+  "name": "@video-platform/shared",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
+    "amqplib": "^2.0.1",
+	"ffprobe-static": "^3.1.0",
+    "minio": "^8.0.7",
+    "mysql2": "^3.24.3",
+    "redis": "^6.2.1"
+  },
+  "peerDependencies": {
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8",
+    "@types/node": "^26.5.0",
+    "sequelize": "^6.37.8",
+    "typescript": "^7.0.2"
+  }
+}

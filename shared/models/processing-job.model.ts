@@ -1,12 +1,12 @@
 import {
-	CreationOptional,
+  CreationOptional,
   DataTypes,
   InferAttributes,
   InferCreationAttributes,
   Model,
-} from 'sequelize';
+} from "sequelize";
 
-import { sequelize } from '../config/database';
+import { sequelize } from "../config/database";
 
 export class ProcessingJob extends Model<
   InferAttributes<ProcessingJob>,
@@ -15,7 +15,7 @@ export class ProcessingJob extends Model<
   declare id: CreationOptional<number>;
   declare videoId: number;
 
-  declare status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  declare status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
 
   declare attempts: number;
   declare errorMessage: string | null;
@@ -38,18 +38,13 @@ ProcessingJob.init(
     videoId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-      field: 'video_id',
+      field: "video_id",
     },
 
     status: {
-      type: DataTypes.ENUM(
-        'QUEUED',
-        'PROCESSING',
-        'COMPLETED',
-        'FAILED',
-      ),
+      type: DataTypes.ENUM("QUEUED", "PROCESSING", "COMPLETED", "FAILED"),
       allowNull: false,
-      defaultValue: 'QUEUED',
+      defaultValue: "QUEUED",
     },
 
     attempts: {
@@ -61,36 +56,36 @@ ProcessingJob.init(
     errorMessage: {
       type: DataTypes.TEXT,
       allowNull: true,
-      field: 'error_message',
+      field: "error_message",
     },
 
     startedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      field: 'started_at',
+      field: "started_at",
     },
 
     completedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      field: 'completed_at',
+      field: "completed_at",
     },
 
-	createdAt: {
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'created_at',
+      field: "created_at",
     },
 
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'updated_at',
+      field: "updated_at",
     },
   },
   {
     sequelize,
-    tableName: 'processing_jobs',
+    tableName: "processing_jobs",
     timestamps: true,
     underscored: true,
   },

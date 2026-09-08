@@ -1,4 +1,4 @@
-import { Video } from "../models/video.model";
+import { Video } from "@video-platform/shared";
 
 import fs from "fs";
 import path from "path";

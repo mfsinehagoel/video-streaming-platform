@@ -10,8 +10,8 @@ services:
 
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     env_file:
       - ./api/.env
 
@@ -125,8 +125,8 @@ services:
 
   worker:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./worker/Dockerfile
 
     container_name: video-worker
 

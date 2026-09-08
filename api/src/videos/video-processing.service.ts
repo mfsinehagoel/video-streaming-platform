@@ -1,4 +1,4 @@
-import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
+import { getRabbitMQChannel, PROCESSING_QUEUE } from "@video-platform/shared";
 
 export function enqueueVideoProcessing(jobId: number, videoId: number) {
   const channel = getRabbitMQChannel();

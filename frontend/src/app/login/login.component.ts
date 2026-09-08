@@ -6,15 +6,11 @@ import { AuthService } from '../services/auth.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    FormsModule,
-    RouterLink
-  ],
+  imports: [FormsModule, RouterLink],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
 })
 export class LoginComponent {
-
   email = '';
   password = '';
 
@@ -23,11 +19,10 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
   ) {}
 
   login(): void {
-
     this.errorMessage = '';
 
     if (!this.email || !this.password) {
@@ -37,32 +32,21 @@ export class LoginComponent {
 
     this.loading = true;
 
-    this.authService.login(
-      this.email,
-      this.password
-    ).subscribe({
-
+    this.authService.login(this.email, this.password).subscribe({
       next: (response) => {
-
         this.loading = false;
 
         if (response.success) {
           this.router.navigate(['/videos']);
         } else {
-          this.errorMessage =
-            response.message || 'Login failed.';
+          this.errorMessage = response.message || 'Login failed.';
         }
       },
 
       error: (error) => {
-
         this.loading = false;
-
-        this.errorMessage =
-          error.error?.message ||
-          'Invalid email or password.';
-      }
-
+        this.errorMessage = error.error?.message || 'Invalid email or password.';
+      },
     });
   }
 }

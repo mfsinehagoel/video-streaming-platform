@@ -2,17 +2,17 @@ import {
   initializeRabbitMQ,
   getRabbitMQChannel,
   PROCESSING_QUEUE,
-} from "./config/rabbitmq";
+} from "@video-platform/shared";
 
-import { sequelize } from "./config/database";
+import { sequelize } from "@video-platform/shared";
 
-import { ProcessingJob, Video, VideoVariant } from "./models";
+import { ProcessingJob, Video, VideoVariant } from "@video-platform/shared";
 
 import {
   downloadFromMinIO,
   uploadToMinIO,
   uploadDirectoryToMinIO,
-} from "./services/minio.service";
+} from "@video-platform/shared";
 import { extractVideoMetadata } from "./services/ffprobe.service";
 import { generateThumbnail, transcodeVideo } from "./services/ffmpeg.service";
 
@@ -25,7 +25,7 @@ import {
   redisClient,
   invalidateVideoListCache,
   initializeRedis,
-} from "./config/redis";
+} from "@video-platform/shared";
 
 async function startWorker() {
   try {
@@ -67,11 +67,17 @@ async function startWorker() {
             );
           }
 
+          await ProcessingJob.increment("attempts", {
+            by: 1,
+            where: {
+              id: jobId,
+            },
+          });
+
           await ProcessingJob.update(
             {
               status: "PROCESSING",
               startedAt: new Date(),
-              attempts: sequelize.literal("attempts + 1"),
             },
             {
               where: {
@@ -290,11 +296,6 @@ async function startWorker() {
                 },
               },
             );
-
-            await rm(hlsDirectory, {
-              recursive: true,
-              force: true,
-            });
           } finally {
             const temporaryFiles = [
               tempFilePath,
@@ -331,6 +332,42 @@ async function startWorker() {
           // 11. Acknowledge RabbitMQ message
           channel.ack(message);
         } catch (error) {
+          console.error("Video processing failed:", {
+            jobId,
+            videoId,
+            error,
+          });
+
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          if (jobId) {
+            await ProcessingJob.update(
+              {
+                status: "FAILED",
+                errorMessage,
+              },
+              {
+                where: {
+                  id: jobId,
+                },
+              },
+            );
+          }
+
+          if (videoId) {
+            await Video.update(
+              {
+                status: "FAILED",
+              },
+              {
+                where: {
+                  id: videoId,
+                },
+              },
+            );
+          }
+
           channel.nack(message, false, false);
         }
       },

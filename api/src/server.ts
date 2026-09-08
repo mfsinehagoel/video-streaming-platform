@@ -1,9 +1,9 @@
 import app from "./app";
-import { sequelize } from "./config/database";
+import { sequelize } from "@video-platform/shared";
 
-import { initializeRedis } from "./config/redis";
+import { initializeRedis } from "@video-platform/shared";
 
-import { initializeRabbitMQ } from './config/rabbitmq';
+import { initializeRabbitMQ } from '@video-platform/shared';
 
 import { initializeMinIO } from './config/minio-init';
 

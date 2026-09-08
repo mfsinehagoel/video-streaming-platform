@@ -6,7 +6,7 @@ import {
   Model,
 } from "sequelize";
 
-import { sequelize } from "../config/database";
+import { sequelize } from "@video-platform/shared";
 
 export class User extends Model<
   InferAttributes<User>,

@@ -1,5 +1,6 @@
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "./auth.middleware";
+import { AuthenticatedRequest } from "../middleware/auth.middleware";
+import { AppError } from "../errors/AppError";
 
 export function requireAdmin(
   req: AuthenticatedRequest,
@@ -7,17 +8,11 @@ export function requireAdmin(
   next: NextFunction,
 ) {
   if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication required",
-    });
+    throw new AppError("Authentication required", 401);
   }
 
   if (req.user.role !== "ADMIN") {
-    return res.status(403).json({
-      success: false,
-      message: "Admin access required",
-    });
+    throw new AppError("Admin access required", 403);
   }
 
   next();
