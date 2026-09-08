@@ -1,24 +1,19 @@
 import { Request, Response } from "express";
-import { ProcessingJob, Video } from "../models";
+import { ProcessingJob, Video } from "@video-platform/shared";
+import { AppError } from "../errors/AppError";
 
 export async function getVideoStatus(req: Request, res: Response) {
   try {
     const videoId = Number(req.params.id);
 
     if (!Number.isInteger(videoId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     const video = await Video.findByPk(videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     const processingJob = await ProcessingJob.findOne({
@@ -47,9 +42,6 @@ export async function getVideoStatus(req: Request, res: Response) {
         : null,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch video status",
-    });
+    throw new AppError("Failed to fetch video status", 500);
   }
 }

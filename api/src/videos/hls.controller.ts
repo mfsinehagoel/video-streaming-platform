@@ -1,32 +1,24 @@
 import { Request, Response } from "express";
-import { Video } from "../models";
+import { Video } from "@video-platform/shared";
 import { minioClient, MINIO_BUCKET } from "../config/minio";
+import { AppError } from "../errors/AppError";
 
 export async function streamHLS(req: Request, res: Response) {
   try {
     const videoId = Number(req.params.id);
 
     if (!Number.isInteger(videoId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     const video = await Video.findByPk(videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     if (!video.hlsObjectKey) {
-      return res.status(404).json({
-        success: false,
-        message: "HLS stream is not available",
-      });
+      throw new AppError("HLS stream is not available", 404);
     }
 
     // Express 5 wildcard parameter
@@ -35,11 +27,8 @@ export async function streamHLS(req: Request, res: Response) {
     const requestedPath = Array.isArray(splat) ? splat.join("/") : splat;
 
     if (!requestedPath) {
-      return res.status(400).json({
-        success: false,
-        message: "HLS file path is required",
-      });
-    };
+      throw new AppError("HLS file path is required", 404);
+    }
 
     // Example:
     // video.hlsObjectKey = hls/1/18/master.m3u8
@@ -55,10 +44,7 @@ export async function streamHLS(req: Request, res: Response) {
     const object = await minioClient.getObject(MINIO_BUCKET, objectKey);
 
     if (!object) {
-      return res.status(404).json({
-        success: false,
-        message: "HLS file not found",
-      });
+      throw new AppError("HLS file not found", 404);
     }
 
     if (objectKey.endsWith(".m3u8")) {
@@ -73,9 +59,6 @@ export async function streamHLS(req: Request, res: Response) {
 
     object.pipe(res);
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to stream video",
-    });
+    throw new AppError("Failed to stream video", 500);
   }
 }

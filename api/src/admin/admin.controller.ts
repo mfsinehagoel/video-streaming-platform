@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 
-import { ProcessingJob, Video, VideoVariant } from "../models";
-import { getRabbitMQChannel, PROCESSING_QUEUE } from "../config/rabbitmq";
+import { ProcessingJob, Video, VideoVariant } from "@video-platform/shared";
+import { getRabbitMQChannel, PROCESSING_QUEUE } from "@video-platform/shared";
+import { AppError } from "../errors/AppError";
 
 // GET /api/admin/dashboard
 export async function getDashboard(req: Request, res: Response) {
@@ -147,10 +148,7 @@ export async function getDashboard(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to load admin dashboard",
-    });
+    throw new AppError("Failed to load admin dashboard", 500);
   }
 }
 
@@ -296,10 +294,7 @@ export async function getAdminVideos(req: Request, res: Response) {
       data,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to load admin videos",
-    });
+    throw new AppError("Failed to load admin videos", 500);
   }
 }
 
@@ -327,10 +322,7 @@ export async function getAdminJobs(req: Request, res: Response) {
       data: jobs,
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to load admin jobs",
-    });
+    throw new AppError("Failed to load admin jobs", 500);
   }
 }
 
@@ -340,38 +332,26 @@ export async function retryJob(req: Request, res: Response) {
     const jobId = Number(req.params.id);
 
     if (!Number.isInteger(jobId) || jobId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid job ID",
-      });
+      throw new AppError("Invalid job ID", 400);
     }
 
     // Find job
     const job = await ProcessingJob.findByPk(jobId);
 
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: "Processing job not found",
-      });
+      throw new AppError("Processing job not found", 404);
     }
 
     // Only FAILED jobs can be manually retried
     if (job.status !== "FAILED") {
-      return res.status(400).json({
-        success: false,
-        message: "Only failed jobs can be retried",
-      });
+      throw new AppError("Only failed jobs can be retried", 400);
     }
 
     // Find video
     const video = await Video.findByPk(job.videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video associated with job not found",
-      });
+      throw new AppError("Video associated with job not found", 404);
     }
 
     // Update job
@@ -422,9 +402,6 @@ export async function retryJob(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to retry processing job",
-    });
+    throw new AppError("Failed to retry processing job", 500);
   }
 }

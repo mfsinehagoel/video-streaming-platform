@@ -1,35 +1,27 @@
 import { Request, Response } from "express";
-import { Video, VideoVariant } from "../models";
-import { deleteFromMinIO } from "../services/minio.service";
-import { redisClient, invalidateVideoListCache } from "../config/redis";
+import { Video, VideoVariant } from "@video-platform/shared";
+import { deleteFromMinIO } from "@video-platform/shared";
+import { redisClient, invalidateVideoListCache } from "@video-platform/shared";
+import { AppError } from "../errors/AppError";
 
 export const deleteVideo = async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
 
     if (!idParam) {
-      return res.status(400).json({
-        success: false,
-        message: "Video ID is required",
-      });
+      throw new AppError("Video ID is required", 400);
     }
 
     const videoId = Number(idParam);
 
     if (!Number.isInteger(videoId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid video ID",
-      });
+      throw new AppError("Invalid video ID", 400);
     }
 
     const video = await Video.findByPk(videoId);
 
     if (!video) {
-      return res.status(404).json({
-        success: false,
-        message: "Video not found",
-      });
+      throw new AppError("Video not found", 404);
     }
 
     // Find all processed variants
@@ -70,16 +62,13 @@ export const deleteVideo = async (req: Request, res: Response) => {
     await video.destroy();
 
     await redisClient.del(`video:${videoId}`);
-	await invalidateVideoListCache();
+    await invalidateVideoListCache();
 
     return res.status(200).json({
       success: true,
       message: "Video deleted successfully",
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete video",
-    });
+    throw new AppError("Failed to delete video", 500);
   }
 };
