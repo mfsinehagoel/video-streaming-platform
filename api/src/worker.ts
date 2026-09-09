@@ -291,10 +291,6 @@ async function startWorker() {
               },
             );
 
-            await rm(hlsDirectory, {
-              recursive: true,
-              force: true,
-            });
           } finally {
             const temporaryFiles = [
               tempFilePath,

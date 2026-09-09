@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { Video, VideoVariant } from "../models";
-import { deleteFromMinIO } from "../services/minio.service";
+import {
+  deleteFromMinIO,
+  deleteDirectoryFromMinIO,
+} from "../services/minio.service";
 import { redisClient, invalidateVideoListCache } from "../config/redis";
 
 export const deleteVideo = async (req: Request, res: Response) => {
@@ -49,9 +52,14 @@ export const deleteVideo = async (req: Request, res: Response) => {
       await deleteFromMinIO(video.thumbnailObjectKey);
     }
 
-    // Delete HLS playlist if present
+    // Delete all HLS files: master playlist, variant playlists and segments
     if (video.hlsObjectKey) {
-      await deleteFromMinIO(video.hlsObjectKey);
+      const hlsPrefix = video.hlsObjectKey.substring(
+        0,
+        video.hlsObjectKey.lastIndexOf("/") + 1,
+      );
+
+      await deleteDirectoryFromMinIO(hlsPrefix);
     }
 
     // Delete processed variants
@@ -70,7 +78,7 @@ export const deleteVideo = async (req: Request, res: Response) => {
     await video.destroy();
 
     await redisClient.del(`video:${videoId}`);
-	await invalidateVideoListCache();
+    await invalidateVideoListCache();
 
     return res.status(200).json({
       success: true,
