@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Video, VideoVariant } from "@video-platform/shared";
-import { deleteFromMinIO } from "@video-platform/shared";
+import { deleteFromMinIO, deleteDirectoryFromMinIO } from "@video-platform/shared";
 import { redisClient, invalidateVideoListCache } from "@video-platform/shared";
 import { AppError } from "../errors/AppError";
 
@@ -41,9 +41,14 @@ export const deleteVideo = async (req: Request, res: Response) => {
       await deleteFromMinIO(video.thumbnailObjectKey);
     }
 
-    // Delete HLS playlist if present
+    // Delete all HLS files: master playlist, variant playlists and segments
     if (video.hlsObjectKey) {
-      await deleteFromMinIO(video.hlsObjectKey);
+      const hlsPrefix = video.hlsObjectKey.substring(
+        0,
+        video.hlsObjectKey.lastIndexOf("/") + 1,
+      );
+
+      await deleteDirectoryFromMinIO(hlsPrefix);
     }
 
     // Delete processed variants

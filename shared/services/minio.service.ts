@@ -3,6 +3,8 @@ import {
   PutObjectCommand,
   S3Client,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 
 import { createWriteStream, createReadStream } from "fs";
@@ -125,4 +127,37 @@ export async function deleteFromMinIO(objectKey: string): Promise<void> {
   });
 
   await minioClient.send(command);
+}
+
+export async function deleteDirectoryFromMinIO(prefix: string): Promise<void> {
+  let continuationToken: string | undefined;
+
+  do {
+    const listCommand = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    });
+
+    const response = await minioClient.send(listCommand);
+
+    const objects = response.Contents ?? [];
+
+    if (objects.length > 0) {
+      await minioClient.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: objects
+              .filter((object) => object.Key)
+              .map((object) => ({
+                Key: object.Key,
+              })),
+          },
+        }),
+      );
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
 }
