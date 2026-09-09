@@ -20,38 +20,44 @@ services:
     environment:
       PORT: 8080
 
-      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
 
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: videos
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: video_platform
-      DB_USER: video_user
-      DB_PASSWORD: video_password
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+
     expose:
       - "8080"
+
     depends_on:
       mysql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
     networks:
       - video-network
 
   mysql:
     image: mysql:8.4
+
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: video_platform
-      MYSQL_USER: video_user
-      MYSQL_PASSWORD: video_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
     volumes:
       - mysql_data:/var/lib/mysql
+
     healthcheck:
       test:
         [
@@ -61,12 +67,13 @@ services:
           "-h",
           "localhost",
           "-u",
-          "video_user",
-          "-pvideo_password",
+          "${MYSQL_USER}",
+          "-p${MYSQL_PASSWORD}",
         ]
       interval: 5s
       timeout: 5s
       retries: 10
+
     networks:
       - video-network
 
@@ -80,8 +87,8 @@ services:
       - "15672:15672"
 
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
 
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
@@ -96,13 +103,17 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+
     ports:
       - "8081:80"
+
     volumes:
       - frontend-dist:/usr/share/nginx/html:ro
+
     depends_on:
       - frontend
       - api
+
     networks:
       - video-network
 
@@ -111,15 +122,20 @@ services:
   minio:
     image: minio/minio
     container_name: video-minio
+
     command: server /data --console-address ":9001"
+
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
     ports:
       - "9000:9000"
       - "9001:9001"
+
     volumes:
       - minio-data:/data
+
     networks:
       - video-network
 
@@ -133,19 +149,19 @@ services:
     command: node dist/worker.js
 
     environment:
-      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
 
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: video_platform
-      DB_USER: video_user
-      DB_PASSWORD: video_password
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
 
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: videos
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
     depends_on:
       mysql:
@@ -162,8 +178,10 @@ services:
     image: redis:7-alpine
     container_name: video-redis
     restart: unless-stopped
+
     ports:
       - "6379:6379"
+
     networks:
       - video-network
 
